@@ -6,6 +6,9 @@ year:           .word       -1
 ask_day:        .asciiz     "Nhap ngay DAY: "
 ask_month:      .asciiz     "Nhap thang MONTH: "
 ask_year:       .asciiz     "Nhap nam YEAR: "
+ask_reenter:    .asciiz     "Ngay thang nam khong hop le. Vui long nhap lai.\n"
+
+menu_opt:       .asciiz     "--------- Ban hay chon 1 trong cac thao tac duoi day ----------\n1. Xuat chuoi TIME theo dinh dang DD/MM/YY\n2. Chuyen doi chuoi TIME thanh mot trong cac dinh dang sau:\n\tA. MM/DD/YYYY\n\tB. Month DD, YYYY\n\tC. DD Month, YYYY\n3. Cho biet ngay vua nhap la ngay thu may trong tuan\n4. Kiem tra nam trong chuoi TIME co phai la nam nhuan hay khong\n5. Cho biet khoang thoi gian giua chuoi TIME_1 va TIME_2\n6. Cho biet 2 nam nhuan gan nhat voi nam trong chuoi TIME.\n----------------------------------------------------------------\nLua chon: "
 
 buffer_day:     .space      16                      # A character array of size 16
 buffer_month:   .space      16                      # A character array of size 16
@@ -15,52 +18,62 @@ buffer_year:    .space      16                      # A character array of size 
 .globl main
 
 main:
+    user_input:                                     # while (true) {
+        la      $a0, ask_day
+        addi    $v0, $zero, 4                       #   cout << "Nhap ngay DAY: ";
+        syscall
 
-    la      $a0, ask_day
-    addi    $v0, $zero, 4                           # cout << "Nhap ngay DAY: ";
-    syscall
+        la      $a0, buffer_day
+        la      $a1, buffer_day
+        addi    $v0, $zero, 8                       #   cin >> buffer_day;
+        syscall
 
-    la      $a0, buffer_day
-    la      $a1, buffer_day
-    addi    $v0, $zero, 8                           # cin >> buffer_day;
-    syscall
+        la      $a0, ask_month
+        addi    $v0, $zero, 4                       #   cout << "Nhap thang MONTH: ";
+        syscall
 
-    la      $a0, ask_month
-    addi    $v0, $zero, 4                           # cout << "Nhap thang MONTH: ";
-    syscall
+        la      $a0, buffer_month
+        la      $a1, buffer_month
+        addi    $v0, $zero, 8                       #   cin >> buffer_month;
+        syscall
 
-    la      $a0, buffer_month
-    la      $a1, buffer_month
-    addi    $v0, $zero, 8                           # cin >> buffer_month;
-    syscall
+        la      $a0, ask_year               
+        addi    $v0, $zero, 4                       #   cout << "Nhap nam YEAR: ";
+        syscall
 
-    la      $a0, ask_year               
-    addi    $v0, $zero, 4                           # cout << "Nhap nam YEAR: ";
-    syscall
+        la      $a0, buffer_year
+        la      $a1, buffer_year
+        addi    $v0, $zero, 8                       #   cin >> buffer_year;
+        syscall
 
-    la      $a0, buffer_year
-    la      $a1, buffer_year
-    addi    $v0, $zero, 8                           # cin >> buffer_year;
-    syscall
+        la      $a0, buffer_day
+        jal     convert_to_unsigned
+        sw      $v0, day                            #   day = convertToUnsigned(buffer_day);
 
-    la      $a0, buffer_day
-    jal     convert_to_unsigned
-    sw      $v0, day                                # int day = convertToUnsigned(buffer_day);
+        la      $a0, buffer_month
+        jal     convert_to_unsigned
+        sw      $v0, month                          #   month = convertToUnsigned(buffer_month);
 
-    la      $a0, buffer_month
-    jal     convert_to_unsigned
-    sw      $v0, month                              # int month = convertToUnsigned(buffer_month);
+        la      $a0, buffer_year
+        jal     convert_to_unsigned
+        sw      $v0, year                           #   year = convertToUnsigned(buffer_year);
 
+        lw      $a0, day
+        lw      $a1, month
+        lw      $a2, year
+        jal     check_date                          #   tmp = checkDate(day, month, year);
+        
+        bne     $v0, $zero, menu                    #   if (tmp) { break; }
+            la      $a0, ask_reenter                
+            addi    $v0, $zero, 4                   #   cout << "Ngay thang nam khong hop le. Vui long nhap lai." << endl;
+            syscall
+            j       user_input                      # }
 
-    la      $a0, buffer_year
-    jal     convert_to_unsigned
-    sw      $v0, year                               # int year = convertToUnsigned(buffer_year);
-
-    lw      $a0, day
-    lw      $a1, month
-    lw      $a2, year
-    jal     check_date
-    j       exit
+    menu:
+        la      $a0, menu_opt
+        addi    $v0, $zero, 4                       
+        syscall
+        j       exit
 
 
 convert_to_unsigned:                                # int convertToUnsigned(string s) {
@@ -83,7 +96,6 @@ convert_to_unsigned:                                # int convertToUnsigned(stri
                 addi    $t2, $zero, '9'
                 slt     $t3, $t2, $t1
                 bne     $t3, $zero, fail_convert    #       if (s[i] >= '0' && s[i] <= '9') {
-
                     sw      $s1, 8($sp)             # -- Store current offset
                     sw      $a0, 4($sp)             # -- Store current s.base_addr
                     sw      $t1, 0($sp)             # -- Store current s[i]
@@ -104,21 +116,21 @@ convert_to_unsigned:                                # int convertToUnsigned(stri
 
     
     end_of_string:
-    bne     $s1, $zero, finish_convert              #   if (s.size() == 0 || !s[i].isdigit) {    
+        bne     $s1, $zero, finish_convert          #   if (s.size() == 0 || !s[i].isdigit) {    
             j       fail_convert
 
     fail_convert:
-    addi    $s0, $zero, -1                          #       n = -1;
+        addi    $s0, $zero, -1                      #       n = -1;
                                                     #   }
     finish_convert:
-    add     $v0, $zero, $s0			                #	res = n;
-    lw      $ra, 12($sp)
-    addi    $sp, $sp, 16
-    jr      $ra                                     #   return res;
-                                                    # }
+        add     $v0, $zero, $s0			            #	res = n;
+        lw      $ra, 12($sp)
+        addi    $sp, $sp, 16
+        jr      $ra                                 #   return res; 
+
 
 multi:                                              # int multi(int a, int b) {
-    add     $s0, $zero, $zero                       #   int sign = 0;
+    add     $s0, $zero, $zero                       #   sign = 0;
 
     slt     $t0, $a0, $zero                     
     beq     $t0, $zero, update_sign                 #   if (a < 0) {
@@ -134,21 +146,20 @@ multi:                                              # int multi(int a, int b) {
             sub     $a1, $zero, $a1                 #        b = -b;
                                                     #   }
     do_multi:
-    add     $v0, $zero, $zero                       #   int res = 0;
-    
+    add     $v0, $zero, $zero                       #   res = 0;
+
     loop:
-    beq     $a1, $zero, change_sign                 #   while (b != 0) {
+        beq     $a1, $zero, change_sign             #   while (b != 0) {
             add     $v0, $v0, $a0                   #        res += a;
             addi    $a1, $a1, -1                    #        a--;
             j       loop                            #   }
 
     change_sign:
-    beq     $s0, $zero, finish_multi                #   if (sign != 0) {
+        beq     $s0, $zero, finish_multi            #   if (sign != 0) {
             sub     $v0, $zero, $v0                 #        res = -res;
                                                     #   }
-
     finish_multi:
-    jr      $ra    				                    #	return res;
+        jr      $ra    				                #	return res;
     						                        # }
 
 
@@ -215,21 +226,21 @@ max_day:                                            # int maxDay(int month, int 
     addi    $t0, $zero, 7
     slt     $t1, $a1, $t0
     beq     $t0, $0, gt_july                        #   if (month < 7) {
-            addi    $a1, $zero, 2
-            jal     mod
-            beq     $v0, $zero, thirty              #       return (month % 2 == 0 ? 30 : 31);
-                    j       thirty_one              #   }
+        addi    $a1, $zero, 2
+        jal     mod
+        beq     $v0, $zero, thirty                  #       return (month % 2 == 0 ? 30 : 31);
+            j       thirty_one                      #   }
 
     gt_july:
-    addi    $a1, $zero, 2
-    jal     mod
-    beq     $v0, $zero, thirty_one                  #   return (month % 2 == 0 ? 31 : 30);
+        addi    $a1, $zero, 2
+        jal     mod
+        beq     $v0, $zero, thirty_one              #   return (month % 2 == 0 ? 31 : 30);
             j       thirty
 
     max_feb:
-    add     $a0, $zero, $a1
-    jal     check_leap_year                         #   max_feb = (isLeapYear(year) ? 29 : 28);
-    beq     $v0, $zero, ninty_eight
+        add     $a0, $zero, $a1
+        jal     check_leap_year                     #   max_feb = (isLeapYear(year) ? 29 : 28);
+        beq     $v0, $zero, ninty_eight
             addi    $v0, $zero, 29
             j       finish_max_day
     
@@ -272,20 +283,20 @@ check_leap_year:                                    # bool checkLeapYear(int yea
     j       not_leap_year                           #   return false;
                                                     # }
     is_leap_year:
-    addi    $v0, $zero, 1
-    j       finish_check_leap_year
+        addi    $v0, $zero, 1
+        j       finish_check_leap_year
 
     not_leap_year:
-    addi    $v0, $zero, 0
-    j       finish_check_leap_year
+        addi    $v0, $zero, 0
+        j       finish_check_leap_year
 
     finish_check_leap_year:
-    lw      $ra, 0($sp)
-    addi    $sp, $sp, 4
-    jr      $ra
+        lw      $ra, 0($sp)
+        addi    $sp, $sp, 4
+        jr      $ra
 
 
-mod:
+mod:                                                # int mod(int n);
     div     $a0, $a1
     mfhi    $v0
     jr      $ra
