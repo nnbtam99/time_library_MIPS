@@ -1,305 +1,350 @@
 .data
-day:            .word       -1
-month:          .word       -1
-year:           .word       -1
 
-ask_day:        .asciiz     "Nhap ngay DAY: "
-ask_month:      .asciiz     "Nhap thang MONTH: "
-ask_year:       .asciiz     "Nhap nam YEAR: "
-ask_reenter:    .asciiz     "Ngay thang nam khong hop le. Vui long nhap lai.\n"
+ask_day:        .asciiz         "Nhap ngay DAY: "
+ask_month:      .asciiz         "Nhap thang MONTH: "
+ask_year:       .asciiz         "Nhap nam YEAR: "
+ask_reinput:    .asciiz         "Ngay thang nam khong hop le. Vui long nhap lai.\n"
+menu_opt:       .asciiz         "--------- Ban hay chon 1 trong cac thao tac duoi day ----------\n1. Xuat chuoi TIME theo dinh dang DD/MM/YY\n2. Chuyen doi chuoi TIME thanh mot trong cac dinh dang sau:\n\tA. MM/DD/YYYY\n\tB. Month DD, YYYY\n\tC. DD Month, YYYY\n3. Cho biet ngay vua nhap la ngay thu may trong tuan\n4. Kiem tra nam trong chuoi TIME co phai la nam nhuan hay khong\n5. Cho biet khoang thoi gian giua chuoi TIME_1 va TIME_2\n6. Cho biet 2 nam nhuan gan nhat voi nam trong chuoi TIME.\n----------------------------------------------------------------\nLua chon: "
 
-menu_opt:       .asciiz     "--------- Ban hay chon 1 trong cac thao tac duoi day ----------\n1. Xuat chuoi TIME theo dinh dang DD/MM/YY\n2. Chuyen doi chuoi TIME thanh mot trong cac dinh dang sau:\n\tA. MM/DD/YYYY\n\tB. Month DD, YYYY\n\tC. DD Month, YYYY\n3. Cho biet ngay vua nhap la ngay thu may trong tuan\n4. Kiem tra nam trong chuoi TIME co phai la nam nhuan hay khong\n5. Cho biet khoang thoi gian giua chuoi TIME_1 va TIME_2\n6. Cho biet 2 nam nhuan gan nhat voi nam trong chuoi TIME.\n----------------------------------------------------------------\nLua chon: "
-
-buffer_day:     .space      16                      # A character array of size 16
-buffer_month:   .space      16                      # A character array of size 16
-buffer_year:    .space      16                      # A character array of size 16
+buffer:         .space          256
+time:           .space          11
 
 .text
 .globl main
 
 main:
-    user_input:                                     # while (true) {
-        la      $a0, ask_day
-        addi    $v0, $zero, 4                       #   cout << "Nhap ngay DAY: ";
-        syscall
+    # $s0 - day, $s1 - month, $s2 - year
+    userInput:                          # while (true) {
+    la      $a0, ask_day
+    addi    $v0, $zero, 4
+    syscall                             #   cout << ask_day;
 
-        la      $a0, buffer_day
-        la      $a1, buffer_day
-        addi    $v0, $zero, 8                       #   cin >> buffer_day;
-        syscall
+    la      $a0, buffer
+    la      $a1, buffer
+    addi    $v0, $zero, 8
+    syscall                             #   cin >> buffer;
 
-        la      $a0, ask_month
-        addi    $v0, $zero, 4                       #   cout << "Nhap thang MONTH: ";
-        syscall
+    la      $a0, buffer
+    jal     stringToNum
+    add     $s0, $zero, $v0             #   day = stringToNum(buffer);
 
-        la      $a0, buffer_month
-        la      $a1, buffer_month
-        addi    $v0, $zero, 8                       #   cin >> buffer_month;
-        syscall
+    la      $a0, ask_month
+    addi    $v0, $zero, 4
+    syscall                             #   cout << ask_month;
 
-        la      $a0, ask_year               
-        addi    $v0, $zero, 4                       #   cout << "Nhap nam YEAR: ";
-        syscall
+    la      $a0, buffer
+    la      $a1, buffer
+    addi    $v0, $zero, 8
+    syscall                             #   cin >> buffer;
 
-        la      $a0, buffer_year
-        la      $a1, buffer_year
-        addi    $v0, $zero, 8                       #   cin >> buffer_year;
-        syscall
+    la      $a0, buffer
+    jal     stringToNum
+    add     $s1, $zero, $v0             #   month = stringToNum(buffer);
 
-        la      $a0, buffer_day
-        jal     convert_to_unsigned
-        sw      $v0, day                            #   day = convertToUnsigned(buffer_day);
+    la      $a0, ask_year
+    addi    $v0, $zero, 4
+    syscall                             #   cout << ask_year;
 
-        la      $a0, buffer_month
-        jal     convert_to_unsigned
-        sw      $v0, month                          #   month = convertToUnsigned(buffer_month);
+    la      $a0, buffer
+    la      $a1, buffer
+    addi    $v0, $zero, 8
+    syscall                             #   cin >> buffer;
 
-        la      $a0, buffer_year
-        jal     convert_to_unsigned
-        sw      $v0, year                           #   year = convertToUnsigned(buffer_year);
+    la      $a0, buffer
+    jal     stringToNum
+    add     $s2, $zero, $v0             #   year = stringToNum(buffer);
 
-        lw      $a0, day
-        lw      $a1, month
-        lw      $a2, year
-        jal     check_date                          #   tmp = checkDate(day, month, year);
-        
-        bne     $v0, $zero, menu                    #   if (tmp) { break; }
-            la      $a0, ask_reenter                
-            addi    $v0, $zero, 4                   #   cout << "Ngay thang nam khong hop le. Vui long nhap lai." << endl;
-            syscall
-            j       user_input                      # }
+    add     $a0, $zero, $s0
+    add     $a1, $zero, $s1
+    add     $a2, $zero, $s2
+    jal     isValidDate
 
-    menu:
-        la      $a0, menu_opt
-        addi    $v0, $zero, 4                       
-        syscall
-        j       exit
+    bne     $v0, $zero, convertToTime   #   if (isValidDate(day, month, year)) break;
+    la      $a0, ask_reinput
+    addi    $v0, $zero, 4
+    syscall                             #   cout << ask_reinput;
+    j       userInput                   # }
 
 
-convert_to_unsigned:                                # int convertToUnsigned(string s) {
-    addi    $sp, $sp, -16
-    sw      $ra, 12($sp)
+    convertToTime:
+    add     $a0, $zero, $s0
+    add     $a1, $zero, $s1
+    add     $a2, $zero, $s2
+    la      $a3, time
+    jal     date                        #   date(day, month, year, time);
 
-    add     $s0, $zero, $zero                       #   int n = 0;
-    add     $s1, $zero, $zero                       #   int offset = 0;
-
-    string_iterate:
-    add     $t0, $a0, $s1                           #   i = s.base_addr + offset
-    lb      $t1, 0($t0)                             #   s[i]
-
-    beq     $t1, $zero, end_of_string
-        addi    $t2, $zero, '\n'
-        beq     $t1, $t2, end_of_string             #   while (s[i] != '\0' && s[i] != '\n') {
-            addi    $t2, $zero, '0'
-            slt     $t3, $t1, $t2
-            bne     $t3, $zero, fail_convert
-                addi    $t2, $zero, '9'
-                slt     $t3, $t2, $t1
-                bne     $t3, $zero, fail_convert    #       if (s[i] >= '0' && s[i] <= '9') {
-                    sw      $s1, 8($sp)             # -- Store current offset
-                    sw      $a0, 4($sp)             # -- Store current s.base_addr
-                    sw      $t1, 0($sp)             # -- Store current s[i]
-
-                    add     $a0, $zero, $s0
-                    addi    $a1, $zero, 10
-                    jal     multi
-
-                    lw      $t1, 0($sp)             # -- Restore current s[i]
-                    lw      $a0, 4($sp)             # -- Restore current s.base_addr
-                    lw      $s1, 8($sp)             # -- Restore current offset
-
-                    add     $s0, $zero, $v0         #           n = n * 10;
-                    sub     $t2, $t1, '0'           #           temp = s[i] - '\0';
-                    add     $s0, $s0, $t2           #           n = n + temp; 
-                    addi    $s1, $s1, 1             #           offset++;
-                    j       string_iterate          #   }
-
-    
-    end_of_string:
-        bne     $s1, $zero, finish_convert          #   if (s.size() == 0 || !s[i].isdigit) {    
-            j       fail_convert
-
-    fail_convert:
-        addi    $s0, $zero, -1                      #       n = -1;
-                                                    #   }
-    finish_convert:
-        add     $v0, $zero, $s0			            #	res = n;
-        lw      $ra, 12($sp)
-        addi    $sp, $sp, 16
-        jr      $ra                                 #   return res; 
+    showMenu:
+    la      $a0, menu_opt
+    addi    $v0, $zero, 4
+    syscall                             #   cout << menu_opt;
+    j       exit
 
 
-multi:                                              # int multi(int a, int b) {
-    add     $s0, $zero, $zero                       #   sign = 0;
+# -------------------------------- int stringToNum(string s) ---------------------------
+stringToNum:                            
+addi    $sp, $sp, -16                   # int stringToNum(string s) {
+sw      $ra, 12($sp)                    # -- Store function addr
+sw      $s0, 8($sp)                     # -- Store $s0
+sw      $s1, 4($sp)                     # -- Store $s1
+sw      $s2, 0($sp)                     # -- Store $s2
 
-    slt     $t0, $a0, $zero                     
-    beq     $t0, $zero, update_sign                 #   if (a < 0) {
-            addi    $t1, $zero, 1
-            sub     $s0, $t1, $s0                   #       sign = 1 - sign;               
-            sub     $a0, $zero, $a0                 #       a = -a;
-                                                    #   }
-    update_sign:
-    slt     $t0, $a1, $zero                     
-    beq     $t0, $zero, do_multi                    #   if (b < 0) {
-            addi    $t1, $zero, 1               
-            sub     $s0, $t1, $s0                   #        sign = 1 - sign;   
-            sub     $a1, $zero, $a1                 #        b = -b;
-                                                    #   }
-    do_multi:
-    add     $v0, $zero, $zero                       #   res = 0;
+add     $v0, $zero, $zero               #   res = 0;
+add     $s0, $zero, $a0                 #   offset = s.base_addr;
 
-    loop:
-        beq     $a1, $zero, change_sign             #   while (b != 0) {
-            add     $v0, $v0, $a0                   #        res += a;
-            addi    $a1, $a1, -1                    #        a--;
-            j       loop                            #   }
+loopStringToNum:                        #   while (true) {
+lb      $t0, 0($s0)
+beq     $t0, $zero, eosToNum            #       if (s[i] == '\0) goto eosToNum;
+beq     $t0, '\n', eosToNum             #       if (s[i] == '\n') goto eosToNum;
 
-    change_sign:
-        beq     $s0, $zero, finish_multi            #   if (sign != 0) {
-            sub     $v0, $zero, $v0                 #        res = -res;
-                                                    #   }
-    finish_multi:
-        jr      $ra    				                #	return res;
-    						                        # }
+addi    $t1, $zero, '0'
+slt     $t2, $t0, $t1
+bne     $t2, $zero, failStringToNum     #       if (s[i] < '0') return false;
+addi    $t1, $zero, '9'
+slt     $t2, $t1, $t0
+bne     $t2, $zero, failStringToNum     #       if (s[i] > '9') return false;
 
+mulo    $v0, $v0, 10                    #       res *= 10;
+add     $v0, $v0, $t0                   #       res += s[i];
+sub     $v0, $v0, '0'                   #       res -= '0';
 
-check_date:                                         # bool checkDate(int day, int month, int year) {
-    addi    $sp, $sp, -16
-    sw      $ra, 12($sp)
+addi    $s0, $s0, 1                     #       offset++;
+j       loopStringToNum                 #   }
 
-    addi    $t0, $zero, -1
-    beq     $a0, $t0, not_valid_date                #   if (day == -1) { return false; }
-    beq     $a1, $t0, not_valid_date                #   if (month == -1) { return false; }
-    beq     $a2, $t0, not_valid_date                #   if (year == -1) { return false; }
+eosToNum:
+beq     $s0, $zero, failStringToNum     #   if (s.size() == 0) goto failStringToNum;
+j       eStringToNum
 
-    addi    $t0, $zero, 1                           #   if (month < 1) { return false; }
-    slt     $t1, $a1, $t0
-    bne     $t1, $zero, not_valid_date
-    
-    addi    $t0, $zero, 12                          #   if (month > 12) { return false; }
-    slt     $t1, $t0, $a1
-    bne     $t1, $zero, not_valid_date
+failStringToNum:
+addi    $v0, $zero, -1                  #   failStringToNum (empty string or exists non-digit character): res = -1;
+j       eStringToNum
 
-    addi    $t0, $zero, 1                           #   if (day < 1) { return false; }
-    slt     $t1, $a0, $t0
-    bne     $t1, $zero, not_valid_date
-
-    sw      $a0, 8($sp)
-    sw      $a1, 4($sp)
-    sw      $a2, 0($sp)
-
-    add     $a0, $zero, $a1
-    add     $a1, $zero, $a2
-    jal     max_day
-
-    lw      $a2, 0($sp)
-    lw      $a1, 4($sp)
-    lw      $a0, 8($sp)
-
-    slt     $t0, $v0, $a0
-    bne     $t0, $zero, not_valid_date              #   if (day > max_day) { return false; }
-    j       valid_date                              #   return true;
-
-    not_valid_date:
-        addi    $v0, $zero, 0
-        j       finish_check_date
-
-    valid_date:
-        addi    $v0, $zero, 1
-        j       finish_check_date
-
-    finish_check_date:
-        lw      $ra, 12($sp)
-        addi    $sp, $sp, 16
-        jr      $ra                                 # }
+eStringToNum:
+lw      $s2, 0($sp)
+lw      $s1, 4($sp)
+lw      $s0, 8($sp)
+lw      $ra, 12($sp)                    #   return res;
+addi    $sp, $sp, 16                    
+jr      $ra                             # }
 
 
-max_day:                                            # int maxDay(int month, int year) {
-    addi    $sp, $sp, -12
-    sw      $ra, 8($sp)
-    sw      $a0, 4($sp)
-    sw      $a1, 0($sp)
-    
-    addi    $t0, $zero, 2
-    beq     $a0, $t0, max_feb                       #   if (month == 2) { return max_feb; }
+# -------------------- bool isValidDate(int day, int month, int year) ---------------------
+isValidDate:
+addi    $sp, $sp, -20                   # bool isValidDate(int day, int month, int year) {
+sw      $ra, 16($sp)
+sw      $s0, 12($sp)
+sw      $s1, 8($sp)
+sw      $s2, 4($sp)
 
-    addi    $t0, $zero, 7
-    slt     $t1, $a1, $t0
-    beq     $t0, $0, gt_july                        #   if (month < 7) {
-        addi    $a1, $zero, 2
-        jal     mod
-        beq     $v0, $zero, thirty                  #       return (month % 2 == 0 ? 30 : 31);
-            j       thirty_one                      #   }
+addi    $t0, $zero, -1
+beq     $a0, $t0, invalidDate           #   if (day == -1) return false;
+beq     $a1, $t0, invalidDate           #   if (month == -1) return false;
+beq     $a2, $t0, invalidDate           #   if (year == -1) return false;
 
-    gt_july:
-        addi    $a1, $zero, 2
-        jal     mod
-        beq     $v0, $zero, thirty_one              #   return (month % 2 == 0 ? 31 : 30);
-            j       thirty
+addi    $t0, $zero, 1
+slt     $t1, $a0, $t0                   
+bne     $t1, $zero, invalidDate         #   if (day < 1) return false;
+slt     $t1, $a1, $t0
+bne     $t1, $zero, invalidDate         #   if (month < 1) return false;
+slt     $t1, $a2, $t0
+bne     $t1, $zero, invalidDate         #   if (year < 1) return false;
 
-    max_feb:
-        add     $a0, $zero, $a1
-        jal     check_leap_year                     #   max_feb = (isLeapYear(year) ? 29 : 28);
-        beq     $v0, $zero, ninty_eight
-            addi    $v0, $zero, 29
-            j       finish_max_day
-    
-    ninty_eight:
-        addi    $v0, $zero, 28
-        j       finish_max_day
-    
-    thirty_one:
-        addi    $v0, $zero, 31
-        j       finish_max_day
-    
-    thirty:
-        addi    $v0, $zero, 30
-        j       finish_max_day
+addi    $t0, $zero, 12
+slt     $t1, $t0, $a1
+bne     $t1, $zero, invalidDate         #   if (month > 12) return false;
 
-    finish_max_day:
-        lw      $a1, 0($sp)
-        lw      $a0, 4($sp)
-        lw      $ra, 8($sp)
-        addi    $sp, $sp, 12
-        jr      $ra                                 # }
+sw      $a0, 0($sp)
+add     $a0, $zero, $a1
+add     $a1, $zero, $a2
+jal     getMaxDay
+
+lw      $a0, 0($sp)
+slt     $t1, $v0, $a0
+bne     $t1, $zero, invalidDate         #   if (day > getMaxDay(month, year)) return false;
+j       validDate
+
+invalidDate:
+add     $v0, $zero, $zero               #   false: res = 0;
+j       eIsValidDate
+
+validDate:
+addi    $v0, $zero, 1                   #   true: res = 1;
+j       eIsValidDate
+
+eIsValidDate:
+lw      $s2, 4($sp)
+lw      $s1, 8($sp)
+lw      $s0, 12($sp)
+lw      $ra, 16($sp)                    #   return res;
+addi    $sp, $sp, 20                    
+jr      $ra                             # }
+
+# --------------------- int getMaxDay(int month, int year) --------------------------
+getMaxDay:
+addi    $sp, $sp, -16                   # int getMaxDay(int month, int year) {
+sw      $ra, 12($sp)
+sw      $s0, 8($sp)
+sw      $s1, 4($sp)
+sw      $s2, 0($sp)
+
+beq     $a0, 2, getMaxFeb               #   if (month == 2) goto getMaxFeb;
+
+addi    $t0, $zero, 7
+slt     $t1, $t0, $a0
+bne     $t1, $zero, getMaxAfterJuly     #   if (month > 7) goto getMaxAfterJuly;
+addi    $t0, $zero, 2
+div     $a0, $t0
+mfhi    $t1
+bne     $t1, 0, max31Days               #   goto (month % 2 ? max31Days : max30Days);
+j       max30Days
+
+getMaxAfterJuly:
+addi    $t0, $zero, 2
+div     $a0, $t0
+mfhi    $t1
+bne     $t1, 0, max30Days               #   getMaxAfterJuly: goto (month % 2 ? max30Days : max31Days);
+j       max31Days
+
+getMaxFeb:
+add     $a0, $zero, $a1
+jal     isLeapYear
+beq     $v0, 0, max28Days               #   getMaxFeb: if (!isLeapYear(year)) goto max28Days;
+addi    $v0, $zero, 29                  #              else res = 29;
+j       eGetMaxDay
+
+max28Days:
+addi    $v0, $zero, 28                  #   max28Days: res = 28;
+j       eGetMaxDay
+
+max30Days:
+addi    $v0, $zero, 30                  #   max30Days: res = 30;
+j       eGetMaxDay
+
+max31Days:
+addi    $v0, $zero, 31                  #   max31Days: res = 31;
+j       eGetMaxDay
+
+eGetMaxDay:
+lw      $s2, 0($sp)
+lw      $s1, 4($sp)
+lw      $s0, 8($sp)
+lw      $ra, 12($sp)                    #   return res;
+addi    $sp, $sp, 16                    
+jr      $ra                             # }
+
+# ---------------------- bool isLeapYear(int year) -----------------------
+isLeapYear:
+addi    $sp, $sp, -16                   # bool isLeapYear(int year) {
+sw      $ra, 12($sp)
+sw      $s0, 8($sp)
+sw      $s1, 4($sp)
+sw      $s2, 0($sp)
+
+addi    $t0, $zero, 400
+div     $a0, $t0
+mfhi    $t1
+beq     $t1, $zero, leapYear            #   if (year % 400 == 0) goto leapYear;
+
+addi    $t0, $zero, 100
+div     $a0, $t0
+mfhi    $t1
+beq     $t1, $zero, notLeapYear         #   if (year % 100 == 0) goto notLeapYear;
+
+addi    $t0, $zero, 4
+div     $a0, $t0
+mfhi    $t1
+beq     $t1, $zero, leapYear            #   if (year % 4 == 0) goto leapYear;
+
+j       notLeapYear                     #   goto notLeapYear;
+
+leapYear:
+addi    $v0, $zero, 1                   #   leapYear: res = 1;
+j       eLeapYear
+
+notLeapYear:
+add     $v0, $zero, $zero               #   notLeapYear: res = 0;
+j       eLeapYear
+
+eLeapYear:
+lw      $s2, 0($sp)
+lw      $s1, 4($sp)
+lw      $s0, 8($sp)
+lw      $ra, 12($sp)                    #   return res;
+addi    $sp, $sp, 16
+jr      $ra                             # }
 
 
-check_leap_year:                                    # bool checkLeapYear(int year) {
-    addi    $sp, $sp, -4
-    sw      $ra, 0($sp)
+# ---------------- char* date(int day, int month, int year, char* time) ---------------
+date:
+addi    $sp, $sp, -16                   # char* date(int day, int month, int year, char* time) {
+sw      $ra, 12($sp)
+sw      $s0, 8($sp)
+sw      $s1, 4($sp)
+sw      $s2, 0($sp)
 
-    addi    $a1, $zero, 400
-    jal     mod
-    beq     $v0, $zero, is_leap_year                #   if (year % 400 == 0) { return true; }
-    
-    addi    $a1, $zero, 100
-    jal     mod
-    beq     $v0, $zero, not_leap_year               #   if (year % 100 == 0) { return false; }
+add     $s0, $zero, $a3                 #   offset = time.base_addr
+addi    $t0, $zero, 2                   #   width_day = 2
+addi    $t2, $zero, 10
 
-    addi    $a1, $zero, 4
-    jal     mod
-    beq     $v0, $zero, is_leap_year                #   if (year % 4 == 0) { return true; }
+loopDayToTime:                          
+beq     $t0, $zero, monthToTime         #   while (width_day != 0) {
+addi    $t0, $t0, -1                    #       width_day--;
+add     $t3, $s0, $t0                   #       i = offset + width_day;
 
-    j       not_leap_year                           #   return false;
-                                                    # }
-    is_leap_year:
-        addi    $v0, $zero, 1
-        j       finish_check_leap_year
+div     $a0, $t2
+mfhi    $t1
+addi    $t1, $t1, '0'                   #       temp = (day % 10) + '0';
+sb      $t1, 0($t3)                     #       s[i] = temp;
+mflo    $a0                             #       day /= 10;
+j       loopDayToTime                   #   }
 
-    not_leap_year:
-        addi    $v0, $zero, 0
-        j       finish_check_leap_year
+monthToTime:
+addi    $s0, $s0, 2                     #   offset += 2;
+addi    $t1, $zero, '/'
+sb      $t1, 0($s0)                     #   s[i] = '/'
+addi    $s0, $s0, 1                     #   offset++;
+addi    $t0, $zero, 2                   #   width_month = 2;
 
-    finish_check_leap_year:
-        lw      $ra, 0($sp)
-        addi    $sp, $sp, 4
-        jr      $ra
+loopMonthToTime:                          
+beq     $t0, $zero, yearToTime          #   while (width_month != 0) {
+addi    $t0, $t0, -1                    #       width_month--;
+add     $t3, $s0, $t0                   #       i = offset + width_month;
 
+div     $a1, $t2
+mfhi    $t1
+addi    $t1, $t1, '0'                   #       temp = (month % 10) + '0';
+sb      $t1, 0($t3)                     #       s[i] = temp;
+mflo    $a1                             #       month /= 10;
+j       loopMonthToTime                 #   }
 
-mod:                                                # int mod(int n);
-    div     $a0, $a1
-    mfhi    $v0
-    jr      $ra
+yearToTime:
+addi    $s0, $s0, 2                     #   offset += 2;
+addi    $t1, $zero, '/'
+sb      $t1, 0($s0)                     #   s[i] = '/'
+addi    $s0, $s0, 1                     #   offset++;
+addi    $t0, $zero, 4                   #   width_year = 4;
+
+loopYearToTime:                          
+beq     $t0, $zero, eDate               #   while (width_year != 0) {
+addi    $t0, $t0, -1                    #       width_year--;
+add     $t3, $s0, $t0                   #       i = offset + width_year;
+
+div     $a2, $t2
+mfhi    $t1
+addi    $t1, $t1, '0'                   #       temp = (year % 10) + '0';
+sb      $t1, 0($t3)                     #       s[i] = temp;
+mflo    $a2                             #       year /= 10;
+j       loopYearToTime                  #   }
+
+eDate:
+addi    $s0, $s0, 4                     #   offset += 4;
+sb      $zero, 0($s0)                   #   s[i] = '\0'
+add     $v0, $zero, $a3                 #   res = time.base_addr;
+lw      $s2, 0($sp)
+lw      $s1, 4($sp)
+lw      $s0, 8($sp)
+lw      $ra, 12($sp)                    #   return res;
+addi    $sp, $sp, 16
+jr      $ra                             # }
 
 
 exit:
