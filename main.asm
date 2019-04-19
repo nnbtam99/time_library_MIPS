@@ -73,20 +73,25 @@ main:
     la      $a3, time
     jal     date                        #   date(day, month, year, time);
 
-    showMenu:
-    la      $a0, menu_opt
-    addi    $v0, $zero, 4
-    syscall                             #   cout << menu_opt;
+    # showMenu:
+    # la      $a0, menu_opt
+    # addi    $v0, $zero, 4
+    # syscall                             #   cout << menu_opt;
+    la      $a0, time
+    jal     year
+    add     $a0, $zero, $v0
+    addi    $v0, $zero, 1
+    syscall
     j       exit
 
 
 # -------------------------------- int stringToNum(string s) ---------------------------
 stringToNum:                            
 addi    $sp, $sp, -16                   # int stringToNum(string s) {
-sw      $ra, 12($sp)                    # -- Store function addr
-sw      $s0, 8($sp)                     # -- Store $s0
-sw      $s1, 4($sp)                     # -- Store $s1
-sw      $s2, 0($sp)                     # -- Store $s2
+sw      $ra, 12($sp)
+sw      $s0, 8($sp)
+sw      $s1, 4($sp)
+sw      $s2, 0($sp)
 
 add     $v0, $zero, $zero               #   res = 0;
 add     $s0, $zero, $a0                 #   offset = s.base_addr;
@@ -178,6 +183,7 @@ lw      $ra, 16($sp)                    #   return res;
 addi    $sp, $sp, 20                    
 jr      $ra                             # }
 
+
 # --------------------- int getMaxDay(int month, int year) --------------------------
 getMaxDay:
 addi    $sp, $sp, -16                   # int getMaxDay(int month, int year) {
@@ -230,6 +236,7 @@ lw      $s0, 8($sp)
 lw      $ra, 12($sp)                    #   return res;
 addi    $sp, $sp, 16                    
 jr      $ra                             # }
+
 
 # ---------------------- bool isLeapYear(int year) -----------------------
 isLeapYear:
@@ -339,6 +346,121 @@ eDate:
 addi    $s0, $s0, 4                     #   offset += 4;
 sb      $zero, 0($s0)                   #   s[i] = '\0'
 add     $v0, $zero, $a3                 #   res = time.base_addr;
+lw      $s2, 0($sp)
+lw      $s1, 4($sp)
+lw      $s0, 8($sp)
+lw      $ra, 12($sp)                    #   return res;
+addi    $sp, $sp, 16
+jr      $ra                             # }
+
+
+# ------------------------- int day(char* time) ----------------------------
+day:
+addi    $sp, $sp, -16                   # int day(char* time) {
+sw      $ra, 12($sp)
+sw      $s0, 8($sp)
+sw      $s1, 4($sp)
+sw      $s2, 0($sp)
+
+la      $s0, buffer                     #   offset_buffer = buffer.base_addr  
+loopDayFromTime:
+lb      $t0, 0($a0)
+beq     $t0, '/', dayToNum              #   while (time[i_time] != '/') {
+sb      $t0, 0($s0)                     #       buffer[i_buffer] = time[i_time];
+addi    $a0, $a0, 1                     #       offset_time++;
+addi    $s0, $s0, 1                     #       offset_buffer++;
+j       loopDayFromTime                 #   }
+
+dayToNum:
+sb      $zero, 0($s0)                   #   buffer[i_buffer] = '\0'
+la      $a0, buffer
+jal     stringToNum
+add     $v0, $zero, $v0                 #   res = stringToNum(buffer);
+
+lw      $s2, 0($sp)
+lw      $s1, 4($sp)
+lw      $s0, 8($sp)
+lw      $ra, 12($sp)                    #   return res;
+addi    $sp, $sp, 16
+jr      $ra                             # }
+
+
+# ---------------------- int month(char* time) ------------------------
+month:
+addi    $sp, $sp, -16                   # int month(char* time) {
+sw      $ra, 12($sp)
+sw      $s0, 8($sp)
+sw      $s1, 4($sp)
+sw      $s2, 0($sp)
+
+la      $s0, buffer                     #   offset_buffer = buffer.base_addr 
+add     $s1, $zero, $zero               #   backslash = 0;
+ 
+skipToMonth:
+lb      $t0, 0($a0)
+beq     $s1, 1, loopMonthFromTime       #   while (backslash != 1) {
+bne     $t0, '/', continueMonth         #       if (time[i_time] == '/') backslash++;
+addi    $s1, $s1, 1
+continueMonth:
+addi    $a0, $a0, 1                     #       offset_time++;
+j       skipToMonth                     #   }
+
+loopMonthFromTime:
+lb      $t0, 0($a0)
+beq     $t0, '/', monthToNum            #   while (time[i_time] != '/') {
+sb      $t0, 0($s0)                     #       buffer[i_buffer] = time[i_time];
+addi    $a0, $a0, 1                     #       offset_time++;
+addi    $s0, $s0, 1                     #       offset_buffer++;
+j       loopMonthFromTime               #   }
+
+monthToNum:
+sb      $zero, 0($s0)                   #   buffer[i_buffer] = '\0'
+la      $a0, buffer
+jal     stringToNum
+add     $v0, $zero, $v0                 #   res = stringToNum(buffer);
+
+lw      $s2, 0($sp)
+lw      $s1, 4($sp)
+lw      $s0, 8($sp)
+lw      $ra, 12($sp)                    #   return res;
+addi    $sp, $sp, 16
+jr      $ra                             # }
+
+
+# ---------------------- int year(char* time) ------------------------
+year:
+addi    $sp, $sp, -16                   # int year(char* time) {
+sw      $ra, 12($sp)
+sw      $s0, 8($sp)
+sw      $s1, 4($sp)
+sw      $s2, 0($sp)
+
+la      $s0, buffer                     #   offset_buffer = buffer.base_addr 
+add     $s1, $zero, $zero               #   backslash = 0;
+ 
+skipToYear:
+lb      $t0, 0($a0)
+beq     $s1, 2, loopYearFromTime        #   while (backslash != 2) {
+bne     $t0, '/', continueYear          #       if (time[i_time] == '/') backslash++;
+addi    $s1, $s1, 1
+continueYear:
+addi    $a0, $a0, 1                     #       offset_time++;
+j       skipToYear                      #   }
+
+loopYearFromTime:
+lb      $t0, 0($a0)
+beq     $t0, $zero, yearToNum           #   while (time[i_time] != '\0') {
+sb      $t0, 0($s0)                     #       buffer[i_buffer] = time[i_time];
+addi    $a0, $a0, 1                     #       offset_time++;
+addi    $s0, $s0, 1                     #       offset_buffer++;
+j       loopYearFromTime                #   }
+
+yearToNum:
+sb      $zero, 0($s0)                   #   buffer[i_buffer] = '\0'
+la      $a0, buffer
+jal     stringToNum
+add     $v0, $zero, $v0                 #   res = stringToNum(buffer);
+
 lw      $s2, 0($sp)
 lw      $s1, 4($sp)
 lw      $s0, 8($sp)
