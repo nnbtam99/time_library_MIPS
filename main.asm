@@ -4,7 +4,13 @@ ask_day:        .asciiz         "Nhap ngay DAY: "
 ask_month:      .asciiz         "Nhap thang MONTH: "
 ask_year:       .asciiz         "Nhap nam YEAR: "
 ask_reinput:    .asciiz         "Ngay thang nam khong hop le. Vui long nhap lai.\n"
-menu_opt:       .asciiz         "--------- Ban hay chon 1 trong cac thao tac duoi day ----------\n1. Xuat chuoi TIME theo dinh dang DD/MM/YY\n2. Chuyen doi chuoi TIME thanh mot trong cac dinh dang sau:\n\tA. MM/DD/YYYY\n\tB. Month DD, YYYY\n\tC. DD Month, YYYY\n3. Cho biet ngay vua nhap la ngay thu may trong tuan\n4. Kiem tra nam trong chuoi TIME co phai la nam nhuan hay khong\n5. Cho biet khoang thoi gian giua chuoi TIME_1 va TIME_2\n6. Cho biet 2 nam nhuan gan nhat voi nam trong chuoi TIME.\n----------------------------------------------------------------\nLua chon: "
+
+menu_opt:       .asciiz         "--------- Ban hay chon 1 trong cac thao tac duoi day ----------\n1. Xuat chuoi TIME theo dinh dang DD/MM/YY\n2. Chuyen doi chuoi TIME thanh mot trong cac dinh dang sau:\n\tA. MM/DD/YYYY\n\tB. Month DD, YYYY\n\tC. DD Month, YYYY\n3. Cho biet ngay vua nhap la ngay thu may trong tuan\n4. Kiem tra nam trong chuoi TIME co phai la nam nhuan hay khong\n5. Cho biet khoang thoi gian giua chuoi TIME_1 va TIME_2\n6. Cho biet 2 nam nhuan gan nhat voi nam trong chuoi TIME.\n----------------------------------------------------------------"
+menu_inp:       .asciiz         "\nLua chon: "
+menu_outp:      .asciiz         "Ket qua: "
+
+true_lyear:     .asciiz         "Nam vua nhap la nam nhuan."
+false_lyear:    .asciiz         "Nam vua nhap khong phai la nam nhuan."
 
 buffer:         .space          256
 time:           .space          11
@@ -73,15 +79,53 @@ main:
     la      $a3, time
     jal     date                        #   date(day, month, year, time);
 
-    # showMenu:
-    # la      $a0, menu_opt
-    # addi    $v0, $zero, 4
-    # syscall                             #   cout << menu_opt;
-    la      $a0, time
-    jal     year
-    add     $a0, $zero, $v0
-    addi    $v0, $zero, 1
+    showMenu:
+    la      $a0, menu_opt
+    addi    $v0, $zero, 4
+    syscall                             #   cout << menu_opt;
+
+    processCmd:                         #   while (true) {
+    la      $a0, menu_inp
+    addi    $v0, $zero, 4               #       cout << endl << menu_inp;
     syscall
+
+    addi    $v0, $zero, 5
+    syscall                             #       cin >> cmd;
+    add     $s0, $zero, $v0             
+
+    la      $a0, menu_outp
+    add     $v0, $zero, 4
+    syscall                             #       cout << menu_res;
+
+    beq     $s0, 1, printTime           #       if (cmd == 1) goto printTime;
+    beq     $s0, 4, printIsLeapYear     #       if (cmd == 4) goto printIsLeapYear;
+
+    # ------------------------ Opt 1. Print time DD/MM/YY ----------------------
+    printTime:                          #       printTime:
+    la      $a0, time
+    addi    $v0, $zero, 4               #       cout << time;
+    syscall
+    j       processCmd
+
+    # ------------------------ Opt 4. Print is leap year --------------------------
+    printIsLeapYear:                    #       printIsLeapYearHelper:
+    la      $a0, time
+    jal     isLeapYearHelper
+    beq     $v0, $zero, printFalseLYear #       if (!isLeapYearHelper(time)) goto printFalseLYear;
+    la      $a0, true_lyear             #       res = true_lyear;
+    j       ePrintLeapYear
+
+    printFalseLYear:
+    la      $a0, false_lyear            #       printFalseLYear: res = false_lyear;
+    j       ePrintLeapYear
+
+    ePrintLeapYear:
+    addi    $v0, $zero, 4               #       cout << res;
+    syscall
+    j       processCmd
+
+    
+
     j       exit
 
 
@@ -467,6 +511,26 @@ lw      $s0, 8($sp)
 lw      $ra, 12($sp)                    #   return res;
 addi    $sp, $sp, 16
 jr      $ra                             # }
+
+
+# ----------------------- bool isLeapYearHelper(char* time) -----------------
+isLeapYearHelper:
+addi    $sp, $sp, -16                   # bool isLeapYearHelper(char* time) {
+sw      $ra, 12($sp)
+sw      $s0, 8($sp)
+sw      $s1, 4($sp)
+sw      $s2, 0($sp)
+
+jal     year                            #   year = year(time);
+add     $a0, $zero, $v0
+jal     isLeapYear                      #   res = isLeapYear(year);
+
+lw      $s2, 0($sp)
+lw      $s1, 4($sp)
+lw      $s0, 8($sp)
+lw      $ra, 12($sp)                    #   return res;
+addi    $sp, $sp, 16
+jr      $ra                             # }   
 
 
 exit:
