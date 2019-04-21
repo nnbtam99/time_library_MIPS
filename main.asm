@@ -5,7 +5,7 @@ ask_month:      .asciiz         "Nhap thang MONTH: "
 ask_year:       .asciiz         "Nhap nam YEAR: "
 ask_reinput:    .asciiz         "Ngay thang nam khong hop le. Vui long nhap lai.\n"
 
-menu_opt:       .asciiz         "--------- Ban hay chon 1 trong cac thao tac duoi day ----------\n1. Xuat chuoi TIME theo dinh dang DD/MM/YY\n2. Chuyen doi chuoi TIME thanh mot trong cac dinh dang sau:\n\tA. MM/DD/YYYY\n\tB. Month DD, YYYY\n\tC. DD Month, YYYY\n3. Cho biet ngay vua nhap la ngay thu may trong tuan\n4. Kiem tra nam trong chuoi TIME co phai la nam nhuan hay khong\n5. Cho biet khoang thoi gian giua chuoi TIME_1 va TIME_2\n6. Cho biet 2 nam nhuan gan nhat voi nam trong chuoi TIME.\n----------------------------------------------------------------"
+menu_opt:       .asciiz         "--------- Ban hay chon 1 trong cac thao tac duoi day ----------\n1. Xuat chuoi TIME theo dinh dang DD/MM/YY\n2. Chuyen doi chuoi TIME thanh mot trong cac dinh dang sau:\n\tA. MM/DD/YYYY\n\tB. Month DD, YYYY\n\tC. DD Month, YYYY\n3. Cho biet ngay vua nhap la ngay thu may trong tuan\n4. Kiem tra nam trong chuoi TIME co phai la nam nhuan hay khong\n5. Cho biet khoang thoi gian giua chuoi TIME_1 va TIME_2\n6. Cho biet 2 nam nhuan gan nhat voi nam trong chuoi TIME.\n7. Thoat chuong trinh.\n----------------------------------------------------------------"
 menu_inp:       .asciiz         "\nLua chon: "
 menu_outp:      .asciiz         "Ket qua: "
 
@@ -99,6 +99,8 @@ main:
 
     beq     $s0, 1, printTime           #       if (cmd == 1) goto printTime;
     beq     $s0, 4, printIsLeapYear     #       if (cmd == 4) goto printIsLeapYear;
+    beq     $s0, 6, print2LYears        #       if (cmd == 6) goto print2LYears;
+    beq     $s0, 7, exit
 
     # ------------------------ Opt 1. Print time DD/MM/YY ----------------------
     printTime:                          #       printTime:
@@ -124,9 +126,37 @@ main:
     syscall
     j       processCmd
 
-    
+    # ------------------------ Opt 6. Print two nearest leap years --------------------------
+    print2LYears:
+    la      $a0, time                   #       print2LYear:
+    jal     year
+    add     $s1, $zero, $v0             #       year = year(time);
+    div     $s1, $s1, 4                 #       year /= 4;
+    mulo    $s1, $s1, 4                 #       year *= 4;
 
-    j       exit
+    add     $s2, $zero, $zero           #       n_lyear = 0;
+    
+    loopGet2LYear:
+    beq     $s2, 2, e2LYear             #       while (n_lyear != 2) {
+    addi    $s1, $s1, 4                 #           year += 4;
+    add     $a0, $zero, $s1
+    jal     isLeapYear
+
+    beq     $v0, $zero, loopGet2LYear   #           if (!isLeapYear(year)) continue;
+    
+    addi    $s2, $s2, 1                 #           n_lyear++;
+    add     $a0, $zero, $s1
+    addi    $v0, $zero, 1
+    syscall                             #           cout << year;
+    addi    $a0, $zero, ' '
+    addi    $v0, $zero, 11
+    syscall                             #           cout << " ";
+    j       loopGet2LYear               #       }
+
+    e2LYear:
+    j       processCmd
+
+
 
 
 # -------------------------------- int stringToNum(string s) ---------------------------
