@@ -142,6 +142,19 @@ main:
     syscall
     j       processCmd
 
+    # ------------------------ Opt 2. Convert to 3 types -------------------------
+    convertTime:
+    la 		$a0, time
+    #jal convertTypeA
+
+    #jal convertTypeB
+
+    jal convertTypeC
+    add $a0, $zero, $v0
+    addi $v0, $zero, 4 
+    syscall
+    j	    processCmd
+    
     # ------------------------ Opt 3. Print Date of Week   ----------------------
     printWeekDay:                        #       printWeekDay:
     la      $a0, time
@@ -790,7 +803,7 @@ jr  	$ra            	                #   }
 
 
 
-	#-------------------------char* Convert(char* TIME, char type)--------------------------#
+		#-------------------------char* Convert(char* TIME, char type)--------------------------#
 #swap DD and MM
 convertTypeA: 
 addi	$sp, $sp, -20
@@ -817,6 +830,7 @@ lw	$s2, 4($sp)
 lw	$s3, 0($sp)
 addi	$sp, $sp, 20
 
+add	$v0, $zero, $a0
 jr $ra
 
 convertTypeB:
@@ -877,11 +891,9 @@ sw	$t5, 4($sp)
 lw	$a1, 0($sp)		# $a1 = month (string) (load from stack)
 jal 	strcpy 			# copy month (string) to time
 
-#add	$a0, $zero, $v0
 lw	$a1, 8($sp)
 jal 	strcat
 
-#add	$a0, $zero, $v0
 lw	$a1, 4($sp)
 jal 	strcat
 
@@ -893,6 +905,8 @@ lw	$s2, 20($sp)
 lw	$s3, 16($sp)
 lw	$a0, 12($sp)
 addi	$sp, $sp, 36
+
+add	$v0, $zero, $a0
 jr 	$ra
 
 convertTypeC:
@@ -930,7 +944,7 @@ lb	$t0, 1($a0)
 sb	$t0, 1($t4)
 sb	$t2, 2($t4)
 sb	$zero, 3($t4)
-sw	$t4, 8($sp)
+sw	$t4, 4($sp)
 
 #	Get YYYY
 la 	$t5, buffer_2		# declare a temp string of YYYY and change to ', YYYY' format
@@ -950,33 +964,26 @@ lb	$t0, 9($a0)
 sb	$t0, 5($t5)
 sb	$zero, 6($t5)
 
-sw	$t5, 4($sp)
+sw	$t5, 8($sp)
 
 #	Concatenation DD Month, YYYY
 
-move	$a0, $v0
-li 	$v0, 4
-syscall
-
-lw	$a1, 8($sp)		
+lw	$a1, 4($sp)		
 jal 	strcpy 			# copy dd (string) to time
 
-
-#add	$a0, $zero, $v0 
 lw	$a1, 0($sp)		# $a1 = month (string) (load from stack)
 jal 	strcat
 
-lw	$a1, 4($sp)
+lw	$a1, 8($sp)
 jal 	strcat
-
 
 lw	$ra, 32($sp)
 lw	$s0, 28($sp)
 lw	$s1, 24($sp)
 lw	$s2, 20($sp)
 lw	$s3, 16($sp)
-lw	$a0, 12($sp)
 addi	$sp, $sp, 36
+add	$v0, $zero, $a0
 
 jr	$ra
 
@@ -1057,7 +1064,7 @@ sw	$s2, 4($sp)
 sw	$s3, 0($sp)
 
 addi	$v0, $zero, 0  # sum = 0
-addi	$t0, $zero, 10 # carry = 10
+addi	$t7, $zero, 10 # carry = 10
 
 addi	$a0, $a0, -48
 addi	$a1, $a1, -48
@@ -1071,26 +1078,25 @@ lw	$s2, 4($sp)
 lw	$s3, 0($sp)
 addi	$sp, $sp, 20
 jr 	$ra
+
 	#----------------------------strcpy----------------------
 strcpy: #reference: https://www.cs.utah.edu/~rajeev/cs3810/slides/3810-05.pdf
-addi 	$sp, $sp, -8
-sw 	$s0, 4($sp)
-sw	$a0, 0($sp)
-add 	$s0, $zero, $zero
+addi 	$sp, $sp, -4		
+sw 	$s0, 0($sp)		
+add 	$s0, $zero, $zero	# i = 0
 
-strcpy_loop: 	
-add 	$t1, $s0, $a1
-lb 	$t2, 0($t1)
-add 	$t3, $s0, $a0
+strcpy_loop: 			
+add 	$t1, $s0, $a1		# while(x[i] = y[i] != '\0')
+lb 	$t2, 0($t1)		#  	i+= 1;
+add 	$t3, $s0, $a0		
 sb 	$t2, 0($t3)
 beq 	$t2, $zero, strcpy_end
 addi 	$s0, $s0, 1
 j strcpy_loop
 
 strcpy_end: 
-lw	$a0, 0($sp)
-lw 	$s0, 4($sp)
-addi 	$sp, $sp, 8
+lw 	$s0, 0($sp)
+addi 	$sp, $sp, 4
 jr 	$ra
 
 
@@ -1106,27 +1112,26 @@ add	$s0, $zero, $zero		# Index of string s0 -- i = 0
 add 	$s1, $zero, $zero 		# Index of string s1 -- j = 0
 
 strcatFirstStr:
-add 	$t0, $a0, $s0			# $t0 = &a[i]
-lb 	$t1, 0($t0) 			# $t1 = a[i]
-beq 	$t1, $zero, strcatSecStr	# if a[i] == '\0' goto strcatSecStr to continue concatenation
-addi 	$s0, $s0, 1  			# i += 1
+add 	$t0, $a0, $s0			# while(x[i] != '\0')
+lb 	$t1, 0($t0) 			# 	i += 1;
+beq 	$t1, $zero, strcatSecStr	# 
+addi 	$s0, $s0, 1  			# 
 j strcatFirstStr
 
 strcatSecStr:
-add 	$t2, $a1, $s1 			# $t2 = &b[j]
-lb 	$t3, 0($t2) 			# $t3 = b[j]
-add 	$t0, $a0, $s0 			# $t4 = &a[i]
-sb 	$t3, 0($t0) 			# a[i] = b[j]
-beq 	$t3, $zero, strcatEnd		# if a[i] == '\0'
-addi 	$s0, $s0, 1			# i += 1
-addi 	$s1, $s1, 1			# j += 1
+add 	$t2, $a1, $s1 			# 
+lb 	$t3, 0($t2) 			# while(x[i] = y[j] != '\0'){
+add 	$t0, $a0, $s0 			# 	i += 1;
+sb 	$t3, 0($t0) 			# 	j += 1;
+beq 	$t3, $zero, strcatEnd		# }
+addi 	$s0, $s0, 1			# 
+addi 	$s1, $s1, 1			# 
 j strcatSecStr
 strcatEnd:
 lw 	$s0, 0($sp)
 lw 	$s1, 4($sp)
 addi 	$sp, $sp, 8
 jr 	$ra
-
-
+#---------------------------------------------
 exit:
 
