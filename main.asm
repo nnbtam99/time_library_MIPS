@@ -4,6 +4,7 @@ ask_day:        .asciiz         "Nhap ngay DAY: "
 ask_month:      .asciiz         "Nhap thang MONTH: "
 ask_year:       .asciiz         "Nhap nam YEAR: "
 ask_reinput:    .asciiz         "Ngay thang nam khong hop le. Vui long nhap lai.\n"
+ask_date2:	.asciiz		"Nhap ngay thang nam can tinh khoang cach voi ngay hien tai. \n"
 
 menu_opt:       .asciiz         "--------- Ban hay chon 1 trong cac thao tac duoi day ----------\n1. Xuat chuoi TIME theo dinh dang DD/MM/YY\n2. Chuyen doi chuoi TIME thanh mot trong cac dinh dang sau:\n\tA. MM/DD/YYYY\n\tB. Month DD, YYYY\n\tC. DD Month, YYYY\n3. Cho biet ngay vua nhap la ngay thu may trong tuan\n4. Kiem tra nam trong chuoi TIME co phai la nam nhuan hay khong\n5. Cho biet khoang thoi gian giua chuoi TIME_1 va TIME_2\n6. Cho biet 2 nam nhuan gan nhat voi nam trong chuoi TIME.\n7. Thoat chuong trinh.\n----------------------------------------------------------------"
 menu_inp:       .asciiz         "\nLua chon: "
@@ -24,12 +25,15 @@ sun:		.asciiz		"Chu Nhat."
 
 buffer:         .space          256
 time:           .space          11
+time2:		    .space          11
+
 
 .text
 .globl main
 
 main:
     # $s0 - day, $s1 - month, $s2 - year
+    addi    $s6, $zero, 0
     userInput:                          # while (true) {
     la      $a0, ask_day
     addi    $v0, $zero, 4
@@ -79,13 +83,16 @@ main:
     la      $a0, ask_reinput
     addi    $v0, $zero, 4
     syscall                             #   cout << ask_reinput;
-    j       userInput                   # }
+    j       userInput                   #   }
 
 
     convertToTime:
     add     $a0, $zero, $s0
     add     $a1, $zero, $s1
     add     $a2, $zero, $s2
+    
+    bne	    $s6, $zero, ePrintGetTime
+    
     la      $a3, time
     jal     date                        #   date(day, month, year, time);
 
@@ -108,8 +115,9 @@ main:
     syscall                             #       cout << menu_res;
 
     beq     $s0, 1, printTime           #       if (cmd == 1) goto printTime;
-    beq	    $s0, 3, printWeekDay	#	if (cmd == 3) goto printWeekDay; 
-    beq     $s0, 4, printIsLeapYear     #       if (cmd == 4) goto printIsLeapYear;
+    beq	    $s0, 3, printWeekDay	    #	    if (cmd == 3) goto printWeekDay; 
+    beq     $s0, 4, printIsLeapYear     #       if (cmd == 4) goto printIsLeapYear;	
+    beq	    $s0, 5, printGetTime	    #   	if (cmd == 5) goto printGetTime;
     beq     $s0, 6, print2LYears        #       if (cmd == 6) goto print2LYears;
     beq     $s0, 7, exit
 
@@ -125,20 +133,20 @@ main:
     la      $a0, time
     jal	    weekDay
         
-    la      $a0, sun		        #       res = sun;
-    beq     $v0, $zero, ePrintWeekDay	#	go to ePrintWeekDay;
-    la      $a0, mon		        #       res = mon;
-    beq     $v0, 1, ePrintWeekDay	#	go to ePrintWeekDay;    
-    la      $a0, tue		        #       res = tue;
-    beq     $v0, 2, ePrintWeekDay	#	go to ePrintWeekDay; 
-    la      $a0, wed		        #       res = wed;
-    beq     $v0, 3, ePrintWeekDay	#	go to ePrintWeekDay; 
-    la      $a0, thu		        #       res = thu;
-    beq     $v0, 4, ePrintWeekDay	#	go to ePrintWeekDay; 
-    la      $a0, fri		        #       res = fri;
-    beq     $v0, 5, ePrintWeekDay	#	go to ePrintWeekDay; 
-    la      $a0, sat		        #       res = sar;
-    beq     $v0, 6, ePrintWeekDay	#	go to ePrintWeekDay; 
+    la      $a0, sun		            #       res = sun;
+    beq     $v0, $zero, ePrintWeekDay   #	go to ePrintWeekDay;
+    la      $a0, mon		            #       res = mon;
+    beq     $v0, 1, ePrintWeekDay	    #	go to ePrintWeekDay;    
+    la      $a0, tue		            #       res = tue;
+    beq     $v0, 2, ePrintWeekDay	    #	go to ePrintWeekDay; 
+    la      $a0, wed		            #       res = wed;
+    beq     $v0, 3, ePrintWeekDay	    #	go to ePrintWeekDay; 
+    la      $a0, thu		            #       res = thu;
+    beq     $v0, 4, ePrintWeekDay	    #	go to ePrintWeekDay; 
+    la      $a0, fri		            #       res = fri;
+    beq     $v0, 5, ePrintWeekDay	    #	go to ePrintWeekDay; 
+    la      $a0, sat		            #       res = sat;
+    beq     $v0, 6, ePrintWeekDay	    #	go to ePrintWeekDay; 
     
     ePrintWeekDay:
     addi    $v0, $zero, 4               #       cout << res;
@@ -162,6 +170,28 @@ main:
     syscall
     j       processCmd
 
+    # ------------------------ Opt 5. Print Get Time  -----------------------------------
+    printGetTime:                        #       printWeekDay:
+    # Lay gia tri ngay thang nam thu hai
+    la      $a0, ask_date2
+    addi    $v0, $zero, 4
+    syscall  
+    addi    $s6, $zero, 1
+    j	    userInput
+    
+    ePrintGetTime:
+    la      $a3, time2
+    jal     date                        #      date(day, month, year, time
+    
+    #------------------------------------------------------------------------------------
+    la 	    $a1, time2
+    la      $a0, time    
+    jal	    getTime
+    add    $a0, $zero, $v0
+    addi    $v0, $zero, 1               #       cout << res;
+    syscall
+    j       processCmd
+
     # ------------------------ Opt 6. Print two nearest leap years --------------------------
     print2LYears:
     la      $a0, time                   #       print2LYear:
@@ -178,15 +208,15 @@ main:
     add     $a0, $zero, $s1
     jal     isLeapYear
 
-    beq     $v0, $zero, loopGet2LYear   #           if (!isLeapYear(year)) continue;
+    beq     $v0, $zero, loopGet2LYear   #       if (!isLeapYear(year)) continue;
     
-    addi    $s2, $s2, 1                 #           n_lyear++;
+    addi    $s2, $s2, 1                 #       n_lyear++;
     add     $a0, $zero, $s1
     addi    $v0, $zero, 1
-    syscall                             #           cout << year;
+    syscall                             #       cout << year;
     addi    $a0, $zero, ' '
     addi    $v0, $zero, 11
-    syscall                             #           cout << " ";
+    syscall                             #       cout << " ";
     j       loopGet2LYear               #       }
 
     e2LYear:
@@ -629,7 +659,7 @@ beq	$t1, $zero, calculator		#   if (month > 3) goto calculator
 addi	$a1, $a1, 12			#   month=month+12;
 addi	$a2, $a2, -1			#   year=year-1;
 
-calculator:				#   date=(day + 2*month + 3*(month+1)/5+year+(year/4))%7;
+calculator:				        #   date=(day + 2*month + 3*(month+1)/5+year+(year/4))%7;
 add 	$t0, $a0, $a2			#   date=day + year
 mulo 	$t1, $a1, 2						
 add 	$t0, $t0, $t1 			#   date=day + year + 2*month
@@ -638,14 +668,14 @@ mulo	$t1, $t1, 3
 addi    $t2, $zero, 5
 div 	$t1, $t2
 mflo	$t1
-add	$t0, $t0, $t1 			#   date=day + year + 2*month + 3*(month+1)/5
+add	$t0, $t0, $t1 	    		#   date=day + year + 2*month + 3*(month+1)/5
 addi    $t2, $zero, 4
 div 	$a2, $t2
 mflo	$t1
-add	$t0, $t0, $t1 			#   date=day + year + 2*month + 3*(month+1)/5 + (year/4)
+add	$t0, $t0, $t1 		    	#   date=day + year + 2*month + 3*(month+1)/5 + (year/4)
 addi    $t2, $zero, 7
 div 	$t0, $t2
-mfhi	$t0				#   date=(day + year + 2*month + 3*(month+1)/5 + (year/4))%7
+mfhi	$t0				        #   date=(day + year + 2*month + 3*(month+1)/5 + (year/4))%7
 
 add 	$v0, $t0, $zero
 
@@ -657,4 +687,92 @@ lw      $ra, 16($sp)                    #   return res;
 addi    $sp, $sp, 20                    
 jr      $ra                             # }
 
+# ------------------------int getTime(char* TIME_1, char* TIME_2) -----------------
+getTime:                                    
+addi    $sp, $sp, -24               	#   int getTime(char* TIME_1, char* TIME_2){
+sw      $ra, 20($sp)
+sw      $s0, 16($sp)
+sw      $s1, 12($sp)
+sw 	$s2, 8($sp)
+
+# Lay ngay thang nam cho nam thu hai
+add	$s0, $zero, $a0
+add	$a0, $zero, $a1
+jal     year                            #   year = year(time);
+add     $t5, $zero, $v0
+
+add	$a0, $zero, $a1
+jal     month                           #   month = year(month);
+add     $t4, $zero, $v0
+
+add	$a0, $zero, $a1
+jal     day                             #   day = year(day);
+add 	$t3, $zero, $v0
+
+# Lay ngay thang nam cho nam thu nhat
+add	$a0, $zero, $s0
+jal     year                            #   year = year(time);
+add     $t2, $zero, $v0
+sw 	$t2, 4($sp)
+
+add	$a0, $zero, $s0
+jal     month                           #   month = year(month);
+add     $t1, $zero, $v0
+sw 	$t1, 0($sp)
+
+add	$a0, $zero, $s0
+jal     day                             #   day = year(day);
+add 	$t0, $zero, $v0
+#--------------------------------------
+
+lw      $t1, 0($sp)
+lw      $t2, 4($sp)
+
+
+# Bat dau tinh khoang cach
+sub 	$v0, $t5, $t2		        	#   res = y2 - y1
+
+beq	$v0, $zero, eGetTime		        #   if(res==0) goto eGetTime
+ 
+slt 	$t6, $v0, $zero
+beq	$t6, $zero, checkMonth		        #   if(res>0) goto checkMonth
+# Swap
+sub	$v0, $zero, $v0			            #   if(res<0) res=0-res; swap(TIME_1, TIME_2)
+
+add 	$t6, $zero, $t0
+add 	$t0, $zero, $t3
+add 	$t3, $zero, $t6
+
+add 	$t6, $zero, $t1
+add 	$t1, $zero, $t4
+add 	$t4, $zero, $t6
+
+add 	$t6, $zero, $t2
+add 	$t2, $zero, $t5
+add 	$t5, $zero, $t6
+      
+checkMonth:
+slt 	$t6, $t4, $t1		
+beq 	$t6, $zero, checkDay		    #   if(m2 >= m1){
+addi 	$v0, $v0, -1			        #   res--
+j 	eGetTime			                #   goto eGetTime 
+
+checkDay:				                #   }
+bne 	$t4, $t1, eGetTime		        #   else if(m2 != m1) goto eGetTime 
+					                    #   else {
+slt 	$t6, $t3, $t0					
+beq 	$t6, $zero, eGetTime	    	#   if(d2 >= d1) goto eGetTime 
+addi 	$v0, $v0, -1			        #   else res--;
+					                    #   }
+eGetTime:
+
+
+lw      $s2, 8($sp)
+lw      $s1, 12($sp)
+lw      $s0, 16($sp)
+lw      $ra, 20($sp)                   	#   return res;
+addi	$sp, $sp, 24  
+jr  	$ra            	                #   }
+
 exit:
+
