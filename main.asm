@@ -12,6 +12,16 @@ menu_outp:      .asciiz         "Ket qua: "
 true_lyear:     .asciiz         "Nam vua nhap la nam nhuan."
 false_lyear:    .asciiz         "Nam vua nhap khong phai la nam nhuan."
 
+mon:		.asciiz		"Thu 2."
+tue:		.asciiz		"Thu 3."
+wed:		.asciiz		"Thu 4."
+thu:		.asciiz		"Thu 5."
+fri:		.asciiz		"Thu 6."
+sat:		.asciiz		"Thu 7."
+sun:		.asciiz		"Chu Nhat."
+
+
+
 buffer:         .space          256
 time:           .space          11
 
@@ -98,6 +108,7 @@ main:
     syscall                             #       cout << menu_res;
 
     beq     $s0, 1, printTime           #       if (cmd == 1) goto printTime;
+    beq	    $s0, 3, printWeekDay	#	if (cmd == 3) goto printWeekDay; 
     beq     $s0, 4, printIsLeapYear     #       if (cmd == 4) goto printIsLeapYear;
     beq     $s0, 6, print2LYears        #       if (cmd == 6) goto print2LYears;
     beq     $s0, 7, exit
@@ -106,6 +117,31 @@ main:
     printTime:                          #       printTime:
     la      $a0, time
     addi    $v0, $zero, 4               #       cout << time;
+    syscall
+    j       processCmd
+
+    # ------------------------ Opt 3. Print Date of Week   ----------------------
+    printWeekDay:                        #       printWeekDay:
+    la      $a0, time
+    jal	    weekDay
+        
+    la      $a0, sun		        #       res = sun;
+    beq     $v0, $zero, ePrintWeekDay	#	go to ePrintWeekDay;
+    la      $a0, mon		        #       res = mon;
+    beq     $v0, 1, ePrintWeekDay	#	go to ePrintWeekDay;    
+    la      $a0, tue		        #       res = tue;
+    beq     $v0, 2, ePrintWeekDay	#	go to ePrintWeekDay; 
+    la      $a0, wed		        #       res = wed;
+    beq     $v0, 3, ePrintWeekDay	#	go to ePrintWeekDay; 
+    la      $a0, thu		        #       res = thu;
+    beq     $v0, 4, ePrintWeekDay	#	go to ePrintWeekDay; 
+    la      $a0, fri		        #       res = fri;
+    beq     $v0, 5, ePrintWeekDay	#	go to ePrintWeekDay; 
+    la      $a0, sat		        #       res = sar;
+    beq     $v0, 6, ePrintWeekDay	#	go to ePrintWeekDay; 
+    
+    ePrintWeekDay:
+    addi    $v0, $zero, 4               #       cout << res;
     syscall
     j       processCmd
 
@@ -562,5 +598,63 @@ lw      $ra, 12($sp)                    #   return res;
 addi    $sp, $sp, 16
 jr      $ra                             # }   
 
+#----------------- int Weekday(int day, int month, int year)	-------------------
+weekDay:
+addi    $sp, $sp, -20                 	#   int Weekday(int day, int month, int year){
+sw      $ra, 16($sp)
+sw      $s0, 12($sp)
+sw      $s1, 8($sp)
+sw 	$s2, 4($sp)
+sw 	$a0, 0($sp)
+
+add     $v0, $zero, $zero              #   res = 0;
+
+add	$s0, $zero, $a0
+add	$a0, $zero, $s0
+jal     year                           #   year = year(time);
+add     $a2, $zero, $v0
+
+add	$a0, $zero, $s0
+jal     month                          #   month = year(month);
+add     $a1, $zero, $v0
+
+add	$a0, $zero, $s0
+jal     day                            #   day = year(day);
+add     $a0, $zero, $v0
+
+
+addi 	$t0, $zero, 3
+slt     $t1, $a1, $t0                   
+beq	$t1, $zero, calculator		#   if (month > 3) goto calculator
+addi	$a1, $a1, 12			#   month=month+12;
+addi	$a2, $a2, -1			#   year=year-1;
+
+calculator:				#   date=(day + 2*month + 3*(month+1)/5+year+(year/4))%7;
+add 	$t0, $a0, $a2			#   date=day + year
+mulo 	$t1, $a1, 2						
+add 	$t0, $t0, $t1 			#   date=day + year + 2*month
+addi	$t1, $a1, 1						
+mulo	$t1, $t1, 3						
+addi    $t2, $zero, 5
+div 	$t1, $t2
+mflo	$t1
+add	$t0, $t0, $t1 			#   date=day + year + 2*month + 3*(month+1)/5
+addi    $t2, $zero, 4
+div 	$a2, $t2
+mflo	$t1
+add	$t0, $t0, $t1 			#   date=day + year + 2*month + 3*(month+1)/5 + (year/4)
+addi    $t2, $zero, 7
+div 	$t0, $t2
+mfhi	$t0				#   date=(day + year + 2*month + 3*(month+1)/5 + (year/4))%7
+
+add 	$v0, $t0, $zero
+
+lw      $a0, 0($sp)
+lw      $s2, 4($sp)
+lw      $s1, 8($sp)
+lw      $s0, 12($sp)
+lw      $ra, 16($sp)                    #   return res;
+addi    $sp, $sp, 20                    
+jr      $ra                             # }
 
 exit:
