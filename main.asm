@@ -5,6 +5,9 @@ ask_month:      .asciiz         "Nhap thang MONTH: "
 ask_year:       .asciiz         "Nhap nam YEAR: "
 ask_reinput:    .asciiz         "Ngay thang nam khong hop le. Vui long nhap lai.\n"
 ask_date2:	.asciiz		"Nhap ngay thang nam can tinh khoang cach voi ngay hien tai. \n"
+ask_type:	 .asciiz	"\nChon dinh dang muon thay doi: A hay B hay C? "
+noti_errortype:	 .asciiz	"\nSai kieu dinh dang. Khoi phuc dinh dang  mac dinh:  "
+noti_convert:	 .asciiz	"\nDinh dang thanh cong. Chuoi moi la: "
 
 menu_opt:       .asciiz         "--------- Ban hay chon 1 trong cac thao tac duoi day ----------\n1. Xuat chuoi TIME theo dinh dang DD/MM/YY\n2. Chuyen doi chuoi TIME thanh mot trong cac dinh dang sau:\n\tA. MM/DD/YYYY\n\tB. Month DD, YYYY\n\tC. DD Month, YYYY\n3. Cho biet ngay vua nhap la ngay thu may trong tuan\n4. Kiem tra nam trong chuoi TIME co phai la nam nhuan hay khong\n5. Cho biet khoang thoi gian giua chuoi TIME_1 va TIME_2\n6. Cho biet 2 nam nhuan gan nhat voi nam trong chuoi TIME.\n7. Thoat chuong trinh.\n----------------------------------------------------------------"
 menu_inp:       .asciiz         "\nLua chon: "
@@ -24,7 +27,6 @@ sun:		.asciiz		"Chu Nhat."
 buffer:         .space          256
 buffer_2:	 .space		  256
 time:           .space          25
-type:		.byte
 
 #time:           .space          11
 time2:		    .space          11
@@ -129,9 +131,10 @@ main:
     syscall                             #       cout << menu_res;
 
     beq     $s0, 1, printTime           #       if (cmd == 1) goto printTime;
-    beq	    $s0, 3, printWeekDay	    #	    if (cmd == 3) goto printWeekDay; 
+    beq	    $s0, 2, convertFormat	#	if (cmd == 2) goto convertFormat
+    beq	    $s0, 3, printWeekDay	#	if (cmd == 3) goto printWeekDay; 
     beq     $s0, 4, printIsLeapYear     #       if (cmd == 4) goto printIsLeapYear;	
-    beq	    $s0, 5, printGetTime	    #   	if (cmd == 5) goto printGetTime;
+    beq	    $s0, 5, printGetTime 	#   	if (cmd == 5) goto printGetTime;
     beq     $s0, 6, print2LYears        #       if (cmd == 6) goto print2LYears;
     beq     $s0, 7, exit
 
@@ -142,18 +145,34 @@ main:
     syscall
     j       processCmd
 
-    # ------------------------ Opt 2. Convert to 3 types -------------------------
-    convertTime:
-    la 		$a0, time
-    #jal convertTypeA
+   # ------------------------ Opt 2. Convert to 3 types -------------------------
 
-    #jal convertTypeB
-
-    jal convertTypeC
-    add $a0, $zero, $v0
-    addi $v0, $zero, 4 
+    convertFormat:
+    la 	    $a0, ask_type 		  # cout << ask_type
+    addi   $v0, $zero, 4
     syscall
+  
+    addi   $v0, $zero, 12		  # cin >> type (for reading character)
+    syscall 
+ 
+    la      $a0, time
+    addi    $a1, $v0, 0			#la      $a1, type
+    
+
+    jal convertTIME
+
+    add     $a1, $zero, $v0
+
+    la      $a0, noti_convert
+    addi    $v0, $zero, 4 
+    syscall
+
+    add     $a0, $zero, $a1
+    addi    $v0, $zero, 4 
+    syscall
+
     j	    processCmd
+
     
     # ------------------------ Opt 3. Print Date of Week   ----------------------
     printWeekDay:                        #       printWeekDay:
@@ -802,10 +821,18 @@ addi	$sp, $sp, 24
 jr  	$ra            	                #   }
 
 
+	#-------------------------char* Convert(char* TIME, char type)--------------------------#
 
-		#-------------------------char* Convert(char* TIME, char type)--------------------------#
-#swap DD and MM
-convertTypeA: 
+convertTIME:
+beq	    $a1, 'A', convertTypeA	# if (type == 'A') --> MM/DD/YYYY
+
+beq	    $a1, 'B', convertTypeB	# if (type == 'B') --> Month DD, YYYY
+
+beq	    $a1, 'C', convertTypeC	# if (type == 'C') --> DD Month, YYYY
+
+j failToConvert
+	
+convertTypeA:		#swap DD and MM
 addi	$sp, $sp, -20
 sw	$ra, 16($sp)
 sw	$s0, 12($sp)
@@ -830,8 +857,7 @@ lw	$s2, 4($sp)
 lw	$s3, 0($sp)
 addi	$sp, $sp, 20
 
-add	$v0, $zero, $a0
-jr $ra
+j exitConvert
 
 convertTypeB:
 addi	$sp, $sp, -36
@@ -906,8 +932,7 @@ lw	$s3, 16($sp)
 lw	$a0, 12($sp)
 addi	$sp, $sp, 36
 
-add	$v0, $zero, $a0
-jr 	$ra
+j exitConvert
 
 convertTypeC:
 addi	$sp, $sp, -36
@@ -983,9 +1008,26 @@ lw	$s1, 24($sp)
 lw	$s2, 20($sp)
 lw	$s3, 16($sp)
 addi	$sp, $sp, 36
-add	$v0, $zero, $a0
+j	 exitConvert
 
-jr	$ra
+
+failToConvert:
+addi	$sp, $sp, -8
+sw	$a0, 4($sp)
+sw	$a1, 0($sp)
+
+la	$a0, noti_errortype
+addi	$v0, $zero, 4
+syscall
+
+lw	$a0, 4($sp)
+lw	$a1, 0($sp)
+addi	$sp, $sp, 8
+j 	exitConvert
+
+exitConvert:
+add	$v0, $zero, $a0
+jr	$ra	
 
 	#-------------------convertToMonthString--------------------------
 # $a0 -- month(int)
@@ -1134,4 +1176,5 @@ addi 	$sp, $sp, 8
 jr 	$ra
 #---------------------------------------------
 exit:
+
 
