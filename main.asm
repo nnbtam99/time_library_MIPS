@@ -21,12 +21,26 @@ fri:		.asciiz		"Thu 6."
 sat:		.asciiz		"Thu 7."
 sun:		.asciiz		"Chu Nhat."
 
-
-
 buffer:         .space          256
-time:           .space          11
+buffer_2:	 .space		  256
+time:           .space          25
+type:		.byte
+
+#time:           .space          11
 time2:		    .space          11
 
+Jan:		.asciiz		"January"
+Feb:		.asciiz		"February"
+Mar:		.asciiz		"March"
+April: 		.asciiz		"April"
+May:		.asciiz		"May"
+June:		.asciiz		"June"
+July:		.asciiz		"July"
+Aug:		.asciiz		"August"
+Sep:		.asciiz		"September"
+Oct:		.asciiz		"October"
+Nov:		.asciiz		"November"
+Dec:		.asciiz		"December"
 
 .text
 .globl main
@@ -773,6 +787,346 @@ lw      $s0, 16($sp)
 lw      $ra, 20($sp)                   	#   return res;
 addi	$sp, $sp, 24  
 jr  	$ra            	                #   }
+
+
+
+	#-------------------------char* Convert(char* TIME, char type)--------------------------#
+#swap DD and MM
+convertTypeA: 
+addi	$sp, $sp, -20
+sw	$ra, 16($sp)
+sw	$s0, 12($sp)
+sw	$s1, 8($sp)
+sw	$s2, 4($sp)
+sw	$s3, 0($sp)
+
+lb	$t0, 0($a0) #	$a0 --- time
+lb	$t1, 1($a0)
+lb	$t2, 3($a0) 
+lb 	$t3, 4($a0) 
+
+sb 	$t0, 3($a0) 
+sb	$t1, 4($a0) 
+sb	$t2, 0($a0) 
+sb	$t3, 1($a0) 
+
+lw	$ra, 16($sp)
+lw	$s0, 12($sp)
+lw	$s1, 8($sp)
+lw	$s2, 4($sp)
+lw	$s3, 0($sp)
+addi	$sp, $sp, 20
+
+jr $ra
+
+convertTypeB:
+addi	$sp, $sp, -36
+sw	$ra, 32($sp)
+sw	$s0, 28($sp)
+sw	$s1, 24($sp)
+sw	$s2, 20($sp)
+sw	$s3, 16($sp)
+sw	$a0, 12($sp)
+
+lb	$t0, 3($a0)		
+lb	$t1, 4($a0)	
+
+add 	$a0, $zero, $t0
+add	$a1, $zero, $t1
+
+jal	monthCharToNum
+add	$a0, $zero, $v0		# a0 = month (int) 
+
+jal	convertMonth
+sw	$v0, 0($sp)		# save month (string) to stack
+
+lw	$a0, 12($sp)		# load $a0 from stack to get each byte
+
+#	Get DD, modify 
+la	$t4, buffer		# declare a temp string of DD and change to ' DD, ' format
+
+addi	$t2, $zero, ' ' 
+addi	$t3, $zero, ','
+	
+sb	$t2, 0($t4)	
+lb	$t0, 0($a0)
+sb	$t0, 1($t4)
+lb	$t0, 1($a0)
+sb	$t0, 2($t4)
+sb	$t3, 3($t4)
+sb	$t2, 4($t4)
+
+sw	$t4, 8($sp)
+
+
+#	Get YYYY
+la 	$t5, buffer_2
+
+lb	$t0, 6($a0)
+sb	$t0, 0($t5)
+lb	$t0, 7($a0)
+sb	$t0, 1($t5)
+lb	$t0, 8($a0)
+sb	$t0, 2($t5)
+lb	$t0, 9($a0)
+sb	$t0, 3($t5)
+
+sw	$t5, 4($sp)
+
+#	Concatenation Month DD, YYYY
+lw	$a1, 0($sp)		# $a1 = month (string) (load from stack)
+jal 	strcpy 			# copy month (string) to time
+
+#add	$a0, $zero, $v0
+lw	$a1, 8($sp)
+jal 	strcat
+
+#add	$a0, $zero, $v0
+lw	$a1, 4($sp)
+jal 	strcat
+
+
+lw	$ra, 32($sp)
+lw	$s0, 28($sp)
+lw	$s1, 24($sp)
+lw	$s2, 20($sp)
+lw	$s3, 16($sp)
+lw	$a0, 12($sp)
+addi	$sp, $sp, 36
+jr 	$ra
+
+convertTypeC:
+addi	$sp, $sp, -36
+sw	$ra, 32($sp)
+sw	$s0, 28($sp)
+sw	$s1, 24($sp)
+sw	$s2, 20($sp)
+sw	$s3, 16($sp)
+sw	$a0, 12($sp)
+
+#	Get MM
+lb	$t0, 3($a0)		
+lb	$t1, 4($a0)	
+
+add 	$a0, $zero, $t0
+add	$a1, $zero, $t1
+
+jal	monthCharToNum
+add	$a0, $zero, $v0		# a0 = month (int) 
+
+jal	convertMonth
+sw	$v0, 0($sp)		# save month (string) to stack
+
+lw	$a0, 12($sp)		# load $a0 from stack to get each byte
+
+#	Get DD, modify 
+la	$t4, buffer		# declare a temp string of DD and change to 'DD ' format
+
+addi	$t2, $zero, ' ' 
+		
+lb	$t0, 0($a0)
+sb	$t0, 0($t4)
+lb	$t0, 1($a0)
+sb	$t0, 1($t4)
+sb	$t2, 2($t4)
+sb	$zero, 3($t4)
+sw	$t4, 8($sp)
+
+#	Get YYYY
+la 	$t5, buffer_2		# declare a temp string of YYYY and change to ', YYYY' format
+
+addi 	$t2, $zero, ','
+addi	$t3, $zero, ' '
+
+sb	$t2, 0($t5)
+sb	$t3, 1($t5)
+lb	$t0, 6($a0)
+sb	$t0, 2($t5)
+lb	$t0, 7($a0)
+sb	$t0, 3($t5)
+lb	$t0, 8($a0)
+sb	$t0, 4($t5)
+lb	$t0, 9($a0)
+sb	$t0, 5($t5)
+sb	$zero, 6($t5)
+
+sw	$t5, 4($sp)
+
+#	Concatenation DD Month, YYYY
+
+move	$a0, $v0
+li 	$v0, 4
+syscall
+
+lw	$a1, 8($sp)		
+jal 	strcpy 			# copy dd (string) to time
+
+
+#add	$a0, $zero, $v0 
+lw	$a1, 0($sp)		# $a1 = month (string) (load from stack)
+jal 	strcat
+
+lw	$a1, 4($sp)
+jal 	strcat
+
+
+lw	$ra, 32($sp)
+lw	$s0, 28($sp)
+lw	$s1, 24($sp)
+lw	$s2, 20($sp)
+lw	$s3, 16($sp)
+lw	$a0, 12($sp)
+addi	$sp, $sp, 36
+
+jr	$ra
+
+	#-------------------convertToMonthString--------------------------
+# $a0 -- month(int)
+# $v0 -- month(string)
+convertMonth:
+beq	$a0, 1, Month_1		# if (month == x) goto Month_x
+
+beq	$a0, 2, Month_2		
+
+beq	$a0, 3, Month_3
+
+beq	$a0, 4, Month_4
+
+beq	$a0, 5, Month_5
+
+beq	$a0, 6, Month_6
+
+beq	$a0, 7, Month_7
+
+beq	$a0, 8, Month_8
+
+beq	$a0, 9, Month_9
+
+beq	$a0, 10, Month_10
+
+beq	$a0, 11, Month_11
+
+la $v0, Dec
+j end
+
+Month_1:
+	la $v0, Jan
+	j end
+Month_2:
+	la $v0, Feb
+	j end
+Month_3:
+	la $v0, Mar
+	j end
+Month_4:
+	la $v0, April
+	j end
+Month_5:
+	la $v0, May
+	j end
+Month_6:
+	la $v0, June
+	j end
+Month_7:
+	la $v0, July
+	j end
+Month_8:
+	la $v0, Aug
+	j end
+Month_9:
+	la $v0, Sep
+	j end
+Month_10:
+	la $v0, Oct
+	j end
+Month_11:
+	la $v0, Nov
+	j end
+end:
+	jr $ra
+
+
+	#--------------------- Convert month from char to string(2 parameters)----------------
+# $a0 -- 1st char, $a1 -- 2nd char
+monthCharToNum:
+addi	$sp, $sp, -20
+sw	$ra, 16($sp)
+sw	$s0, 12($sp)
+sw	$s1, 8($sp)
+sw	$s2, 4($sp)
+sw	$s3, 0($sp)
+
+addi	$v0, $zero, 0  # sum = 0
+addi	$t0, $zero, 10 # carry = 10
+
+addi	$a0, $a0, -48
+addi	$a1, $a1, -48
+mul 	$a0, $a0, $t0	# a0 = a0 * 10
+add	$v0, $a0, $a1	# sum = a0 + a1
+
+lw	$ra, 16($sp)
+lw	$s0, 12($sp)
+lw	$s1, 8($sp)
+lw	$s2, 4($sp)
+lw	$s3, 0($sp)
+addi	$sp, $sp, 20
+jr 	$ra
+	#----------------------------strcpy----------------------
+strcpy: #reference: https://www.cs.utah.edu/~rajeev/cs3810/slides/3810-05.pdf
+addi 	$sp, $sp, -8
+sw 	$s0, 4($sp)
+sw	$a0, 0($sp)
+add 	$s0, $zero, $zero
+
+strcpy_loop: 	
+add 	$t1, $s0, $a1
+lb 	$t2, 0($t1)
+add 	$t3, $s0, $a0
+sb 	$t2, 0($t3)
+beq 	$t2, $zero, strcpy_end
+addi 	$s0, $s0, 1
+j strcpy_loop
+
+strcpy_end: 
+lw	$a0, 0($sp)
+lw 	$s0, 4($sp)
+addi 	$sp, $sp, 8
+jr 	$ra
+
+
+	#----------------------------String concatenation------------------------
+# $a0 -- 1st string
+# $a1 -- 2nd string
+strcat:
+addi 	$sp, $sp, -8
+sw 	$s0, 0($sp)
+sw	$s1, 4($sp)
+
+add	$s0, $zero, $zero		# Index of string s0 -- i = 0
+add 	$s1, $zero, $zero 		# Index of string s1 -- j = 0
+
+strcatFirstStr:
+add 	$t0, $a0, $s0			# $t0 = &a[i]
+lb 	$t1, 0($t0) 			# $t1 = a[i]
+beq 	$t1, $zero, strcatSecStr	# if a[i] == '\0' goto strcatSecStr to continue concatenation
+addi 	$s0, $s0, 1  			# i += 1
+j strcatFirstStr
+
+strcatSecStr:
+add 	$t2, $a1, $s1 			# $t2 = &b[j]
+lb 	$t3, 0($t2) 			# $t3 = b[j]
+add 	$t0, $a0, $s0 			# $t4 = &a[i]
+sb 	$t3, 0($t0) 			# a[i] = b[j]
+beq 	$t3, $zero, strcatEnd		# if a[i] == '\0'
+addi 	$s0, $s0, 1			# i += 1
+addi 	$s1, $s1, 1			# j += 1
+j strcatSecStr
+strcatEnd:
+lw 	$s0, 0($sp)
+lw 	$s1, 4($sp)
+addi 	$sp, $sp, 8
+jr 	$ra
+
 
 exit:
 
