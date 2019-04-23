@@ -163,7 +163,7 @@ main:
     syscall 
  
     add     $a0, $zero, $t0		  # load address of timeFormatted
-    addi    $a1, $v0, 0		  # la      $a1, type
+    addi    $a1, $v0, 0		  	  # la      $a1, type
     
 
     jal convertTIME
