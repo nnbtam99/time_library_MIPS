@@ -26,10 +26,10 @@ sun:		.asciiz		"Chu Nhat."
 
 buffer:         .space          256
 buffer_2:	 .space		  256
-time:           .space          25
 
-#time:           .space          11
-time2:		    .space          11
+timeFormatted:	 .space          25
+time:            .space          11
+time2:		 .space          11
 
 Jan:		.asciiz		"January"
 Feb:		.asciiz		"February"
@@ -145,18 +145,25 @@ main:
     syscall
     j       processCmd
 
-   # ------------------------ Opt 2. Convert to 3 types -------------------------
+    # ------------------------ Opt 2. Convert to 3 types -------------------------
 
     convertFormat:
-    la 	    $a0, ask_type 		  # cout << ask_type
+    
+    la	   $a0, timeFormatted 
+    la     $a1, time	
+    jal    strcpy
+    add    $t0, $zero, $v0		  # store address of timeFormatted
+
+
+    la 	   $a0, ask_type 		  # cout << ask_type
     addi   $v0, $zero, 4
     syscall
   
     addi   $v0, $zero, 12		  # cin >> type (for reading character)
     syscall 
  
-    la      $a0, time
-    addi    $a1, $v0, 0			#la      $a1, type
+    add     $a0, $zero, $t0		  # load address of timeFormatted
+    addi    $a1, $v0, 0		  # la      $a1, type
     
 
     jal convertTIME
@@ -167,7 +174,7 @@ main:
     addi    $v0, $zero, 4 
     syscall
 
-    add     $a0, $zero, $a1
+    add     $a0, $zero, $a1		  
     addi    $v0, $zero, 4 
     syscall
 
@@ -1138,6 +1145,7 @@ j strcpy_loop
 strcpy_end: 
 lw 	$s0, 0($sp)
 addi 	$sp, $sp, 4
+add     $v0, $zero, $a0
 jr 	$ra
 
 
