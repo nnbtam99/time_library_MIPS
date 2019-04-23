@@ -823,167 +823,166 @@ jr  	$ra            	                #   }
 
 	#-------------------------char* Convert(char* TIME, char type)--------------------------#
 
-convertTIME:
-beq	    $a1, 'A', convertTypeA	# if (type == 'A') --> MM/DD/YYYY
+convertTIME:				# char* Convert(char* TIME, char type){
+beq	    $a1, 'A', convertTypeA	# if (type == 'A') goto convertTypeA // MM/DD/YYYY
 
-beq	    $a1, 'B', convertTypeB	# if (type == 'B') --> Month DD, YYYY
+beq	    $a1, 'B', convertTypeB	# else if (type == 'B') goto convertTypeB // Month DD, YYYY
 
-beq	    $a1, 'C', convertTypeC	# if (type == 'C') --> DD Month, YYYY
+beq	    $a1, 'C', convertTypeC	# else if (type == 'C') goto convertTypeC // DD Month, YYYY
 
-j failToConvert
+j failToConvert				# else goto failToConvert
 	
-convertTypeA:		#swap DD and MM
-addi	$sp, $sp, -20
-sw	$ra, 16($sp)
-sw	$s0, 12($sp)
-sw	$s1, 8($sp)
-sw	$s2, 4($sp)
-sw	$s3, 0($sp)
+# A. MM/DD/YYYY
+# swap DD and MM			
+convertTypeA:				
+addi	$sp, $sp, -16			
+sw	$ra, 12($sp)
+sw	$s0, 8($sp)
+sw	$s1, 4($sp)
+sw	$s2, 0($sp)		
+					# //a0 = &time. Default format: DD/MM/YYYY
+lb	$t0, 0($a0) 			# t0 = time[0]; t1 = time[1];
+lb	$t1, 1($a0)			# t2 = time[3]; t4 = time[4];
+lb	$t2, 3($a0) 			
+lb 	$t3, 4($a0) 				
 
-lb	$t0, 0($a0) #	$a0 --- time
-lb	$t1, 1($a0)
-lb	$t2, 3($a0) 
-lb 	$t3, 4($a0) 
-
-sb 	$t0, 3($a0) 
-sb	$t1, 4($a0) 
+sb 	$t0, 3($a0) 			# time[3] = t0; time[4] = t1;
+sb	$t1, 4($a0) 			# time[0] = t2; time[1] = t4;
 sb	$t2, 0($a0) 
 sb	$t3, 1($a0) 
 
-lw	$ra, 16($sp)
-lw	$s0, 12($sp)
-lw	$s1, 8($sp)
-lw	$s2, 4($sp)
-lw	$s3, 0($sp)
-addi	$sp, $sp, 20
+lw	$ra, 12($sp)
+lw	$s0, 8($sp)
+lw	$s1, 4($sp)
+lw	$s2, 0($sp)
+addi	$sp, $sp, 16
 
 j exitConvert
 
+# B. Month DD, YYYY
 convertTypeB:
-addi	$sp, $sp, -36
-sw	$ra, 32($sp)
-sw	$s0, 28($sp)
-sw	$s1, 24($sp)
-sw	$s2, 20($sp)
-sw	$s3, 16($sp)
+addi	$sp, $sp, -32
+sw	$ra, 28($sp)
+sw	$s0, 24($sp)
+sw	$s1, 20($sp)
+sw	$s2, 16($sp)
 sw	$a0, 12($sp)
-
-lb	$t0, 3($a0)		
+					# //a0 = &time. Default format: DD/MM/YYYY
+lb	$t0, 3($a0)			# char t0 = time[3]; char t1 = time[4];
 lb	$t1, 4($a0)	
 
-add 	$a0, $zero, $t0
+add 	$a0, $zero, $t0			
 add	$a1, $zero, $t1
 
-jal	monthCharToNum
-add	$a0, $zero, $v0		# a0 = month (int) 
+jal	monthCharToNum			
+add	$a0, $zero, $v0			# int num = monthCharToNum(t0, t1); 
 
-jal	convertMonth
-sw	$v0, 0($sp)		# save month (string) to stack
+jal	convertMonth			# char* month = convertMonth(num);
+sw	$v0, 0($sp)			# //save month (string) to stack
 
-lw	$a0, 12($sp)		# load $a0 from stack to get each byte
+lw	$a0, 12($sp)			# //load $a0 from stack to get each byte
 
 #	Get DD, modify 
-la	$t4, buffer		# declare a temp string of DD and change to ' DD, ' format
+la	$t4, buffer			# //temp string of DD and change to ' DD, ' format
 
 addi	$t2, $zero, ' ' 
-addi	$t3, $zero, ','
-	
-sb	$t2, 0($t4)	
-lb	$t0, 0($a0)
-sb	$t0, 1($t4)
-lb	$t0, 1($a0)
-sb	$t0, 2($t4)
-sb	$t3, 3($t4)
+addi	$t3, $zero, ','			
+					
+sb	$t2, 0($t4)			# buffer[0] = ' ';
+lb	$t0, 0($a0)			# buffer[1] = time[0]; 
+sb	$t0, 1($t4)			# buffer[2] = time[1]
+lb	$t0, 1($a0)			# buffer[3] = ','; 
+sb	$t0, 2($t4)			# buffer[4] = ' ';
+sb	$t3, 3($t4)			# buffer[5] = '\0'
 sb	$t2, 4($t4)
+sb	$zero, 5($t4)
 
 sw	$t4, 8($sp)
 
 
-#	Get YYYY
-la 	$t5, buffer_2
+#	Get YYYY		
+la 	$t5, buffer_2			
 
-lb	$t0, 6($a0)
-sb	$t0, 0($t5)
-lb	$t0, 7($a0)
-sb	$t0, 1($t5)
-lb	$t0, 8($a0)
+lb	$t0, 6($a0)			# buffer_2[0] = time[6];
+sb	$t0, 0($t5)			# buffer_2[1] = time[7];
+lb	$t0, 7($a0)			# buffer_2[2] = time[8];
+sb	$t0, 1($t5)			# buffer_2[3] = time[9];
+lb	$t0, 8($a0)			# buffer_2[4] = '\0';
 sb	$t0, 2($t5)
 lb	$t0, 9($a0)
 sb	$t0, 3($t5)
+sb	$zero, 4($t5)
 
 sw	$t5, 4($sp)
 
 #	Concatenation Month DD, YYYY
-lw	$a1, 0($sp)		# $a1 = month (string) (load from stack)
-jal 	strcpy 			# copy month (string) to time
+lw	$a1, 0($sp)			# //a1 = month (string) (load from stack)
+jal 	strcpy 				# strcpy(time, month);
 
-lw	$a1, 8($sp)
+lw	$a1, 8($sp)			# strcat(time, buffer);
+jal 	strcat	
+
+lw	$a1, 4($sp)			# strcat(time, buffer_2);
 jal 	strcat
 
-lw	$a1, 4($sp)
-jal 	strcat
-
-
-lw	$ra, 32($sp)
-lw	$s0, 28($sp)
-lw	$s1, 24($sp)
-lw	$s2, 20($sp)
-lw	$s3, 16($sp)
-lw	$a0, 12($sp)
-addi	$sp, $sp, 36
+lw	$ra, 28($sp)			
+lw	$s0, 24($sp)
+lw	$s1, 20($sp)
+lw	$s2, 16($sp)
+addi	$sp, $sp, 32
 
 j exitConvert
 
+# C. DD Month, YYYY
 convertTypeC:
-addi	$sp, $sp, -36
-sw	$ra, 32($sp)
-sw	$s0, 28($sp)
-sw	$s1, 24($sp)
-sw	$s2, 20($sp)
-sw	$s3, 16($sp)
+addi	$sp, $sp, -32
+sw	$ra, 28($sp)
+sw	$s0, 24($sp)
+sw	$s1, 20($sp)
+sw	$s2, 16($sp)
 sw	$a0, 12($sp)
 
-#	Get MM
-lb	$t0, 3($a0)		
+#	Get MM				# //a0 = &time. Default format: DD/MM/YYYY
+lb	$t0, 3($a0)			# char t0 = time[3]; char t1 = time[4];
 lb	$t1, 4($a0)	
 
 add 	$a0, $zero, $t0
 add	$a1, $zero, $t1
 
 jal	monthCharToNum
-add	$a0, $zero, $v0		# a0 = month (int) 
+add	$a0, $zero, $v0			# int num = monthCharToNum(t0, t1); 
 
-jal	convertMonth
-sw	$v0, 0($sp)		# save month (string) to stack
+jal	convertMonth			# char* month = convertMonth(num);
+sw	$v0, 0($sp)			# save month (string) to stack
 
-lw	$a0, 12($sp)		# load $a0 from stack to get each byte
+lw	$a0, 12($sp)			# //load $a0 from stack to get each byte
 
 #	Get DD, modify 
-la	$t4, buffer		# declare a temp string of DD and change to 'DD ' format
+la	$t4, buffer			# //temp string of DD and change to 'DD ' format
 
 addi	$t2, $zero, ' ' 
-		
-lb	$t0, 0($a0)
-sb	$t0, 0($t4)
-lb	$t0, 1($a0)
-sb	$t0, 1($t4)
+			
+lb	$t0, 0($a0)			# buffer[0] = time[0];
+sb	$t0, 0($t4)			# buffer[1] = time[1]; 
+lb	$t0, 1($a0)			# buffer[2] = ' ';
+sb	$t0, 1($t4)			# buffer[3] = '\0';
 sb	$t2, 2($t4)
 sb	$zero, 3($t4)
 sw	$t4, 4($sp)
 
 #	Get YYYY
-la 	$t5, buffer_2		# declare a temp string of YYYY and change to ', YYYY' format
+la 	$t5, buffer_2			#temp string of YYYY and change to ', YYYY' format
 
 addi 	$t2, $zero, ','
 addi	$t3, $zero, ' '
 
-sb	$t2, 0($t5)
-sb	$t3, 1($t5)
-lb	$t0, 6($a0)
-sb	$t0, 2($t5)
-lb	$t0, 7($a0)
-sb	$t0, 3($t5)
-lb	$t0, 8($a0)
+sb	$t2, 0($t5)			# buffer_2[0] = ',';
+sb	$t3, 1($t5)			# buffer_2[1] = ' ';
+lb	$t0, 6($a0)			# buffer_2[2] = time[6];
+sb	$t0, 2($t5)			# buffer_2[3] = time[7];
+lb	$t0, 7($a0)			# buffer_2[4] = time[8];
+sb	$t0, 3($t5)			# buffer_2[5] = time[9];
+lb	$t0, 8($a0)			# buffer_2[6] = '\0';
 sb	$t0, 4($t5)
 lb	$t0, 9($a0)
 sb	$t0, 5($t5)
@@ -993,72 +992,72 @@ sw	$t5, 8($sp)
 
 #	Concatenation DD Month, YYYY
 
-lw	$a1, 4($sp)		
-jal 	strcpy 			# copy dd (string) to time
+lw	$a1, 4($sp)			
+jal 	strcpy 				# strcpy(time, buffer);
+					
+lw	$a1, 0($sp)			#//a1 = month (load from stack)#
+jal 	strcat				# strcat(time, month);
 
-lw	$a1, 0($sp)		# $a1 = month (string) (load from stack)
+lw	$a1, 8($sp)			# strcat(time, buffer_2);
 jal 	strcat
 
-lw	$a1, 8($sp)
-jal 	strcat
-
-lw	$ra, 32($sp)
-lw	$s0, 28($sp)
-lw	$s1, 24($sp)
-lw	$s2, 20($sp)
-lw	$s3, 16($sp)
-addi	$sp, $sp, 36
+lw	$ra, 28($sp)
+lw	$s0, 24($sp)
+lw	$s1, 20($sp)
+lw	$s2, 16($sp)
+addi	$sp, $sp, 32
 j	 exitConvert
 
 
-failToConvert:
+failToConvert:				
 addi	$sp, $sp, -8
 sw	$a0, 4($sp)
 sw	$a1, 0($sp)
-
-la	$a0, noti_errortype
+					#//if (type != 'A' && type !+= 'B' && type != 'C')
+la	$a0, noti_errortype		#// cout << noti_errortype;}
 addi	$v0, $zero, 4
 syscall
 
 lw	$a0, 4($sp)
 lw	$a1, 0($sp)
 addi	$sp, $sp, 8
-j 	exitConvert
+j 	exitConvert			
 
 exitConvert:
 add	$v0, $zero, $a0
 jr	$ra	
 
-	#-------------------convertToMonthString--------------------------
+	#-------------------char * convertMonth(int month)--------------------------
 # $a0 -- month(int)
-# $v0 -- month(string)
-convertMonth:
-beq	$a0, 1, Month_1		# if (month == x) goto Month_x
-
-beq	$a0, 2, Month_2		
-
-beq	$a0, 3, Month_3
-
-beq	$a0, 4, Month_4
-
-beq	$a0, 5, Month_5
-
-beq	$a0, 6, Month_6
-
-beq	$a0, 7, Month_7
-
-beq	$a0, 8, Month_8
-
-beq	$a0, 9, Month_9
-
-beq	$a0, 10, Month_10
-
-beq	$a0, 11, Month_11
-
-la $v0, Dec
-j end
-
-Month_1:
+# $v0 -- month(char*)
+convertMonth:				# char* convertMonth(int month){
+					# char* res = new char[10];
+beq	$a0, 1, Month_1			# if (month == 1)
+					# 	res = Month_1(month);
+beq	$a0, 2, Month_2			# else if (month == 2)
+					#	res = Month_2(month);
+beq	$a0, 3, Month_3			# else if (month == 3)
+					#	res = Month_3(month);
+beq	$a0, 4, Month_4			# else if (month == 4)
+					#	res = Month_4(month);
+beq	$a0, 5, Month_5			# else if (month == 5)
+					#	res = Month_5(month);
+beq	$a0, 6, Month_6			# else if (month == 6)
+					#	res = Month_6(month);
+beq	$a0, 7, Month_7			# else if (month == 7)
+					#	res = Month_7(month);
+beq	$a0, 8, Month_8			# else if (month == 8)
+					#	res = Month_8(month);
+beq	$a0, 9, Month_9			# else if (month == 9)
+					#	res = Month_9(month);
+beq	$a0, 10, Month_10		# else if (month == 10)
+					#	res = Month_10(month);
+beq	$a0, 11, Month_11		# else if (month == 11)
+					#	res = Month_11(month);
+la $v0, Dec				# else
+j end					#	res = Month_12(month);
+					# return res;}
+Month_1:				
 	la $v0, Jan
 	j end
 Month_2:
@@ -1095,41 +1094,41 @@ end:
 	jr $ra
 
 
-	#--------------------- Convert month from char to string(2 parameters)----------------
-# $a0 -- 1st char, $a1 -- 2nd char
-monthCharToNum:
-addi	$sp, $sp, -20
-sw	$ra, 16($sp)
-sw	$s0, 12($sp)
-sw	$s1, 8($sp)
-sw	$s2, 4($sp)
-sw	$s3, 0($sp)
+	#---------------------int monthCharToNum(char c1, char c2)----------------
+# $a0 -- 1st char
+# $a1 -- 2nd char
+monthCharToNum:				# int monthCharToNum(char c1, char c2){	
+addi	$sp, $sp, -16			
+sw	$ra, 12($sp)			
+sw	$s0, 8($sp)
+sw	$s1, 4($sp)
+sw	$s2, 0($sp)
 
-addi	$v0, $zero, 0  # sum = 0
-addi	$t7, $zero, 10 # carry = 10
+addi	$v0, $zero, 0  			# int sum = 0;
+addi	$t7, $zero, 10 			
 
-addi	$a0, $a0, -48
-addi	$a1, $a1, -48
-mul 	$a0, $a0, $t0	# a0 = a0 * 10
-add	$v0, $a0, $a1	# sum = a0 + a1
+addi	$a0, $a0, -48			# c1 -= '0';
+addi	$a1, $a1, -48			# c2 -= '0';
+mul 	$a0, $a0, $t0			# c1 *= 10;
+add	$v0, $a0, $a1			# sum = c1 + c2;
 
-lw	$ra, 16($sp)
-lw	$s0, 12($sp)
-lw	$s1, 8($sp)
-lw	$s2, 4($sp)
-lw	$s3, 0($sp)
-addi	$sp, $sp, 20
+lw	$ra, 12($sp)			# return sum;}
+lw	$s0, 8($sp)
+lw	$s1, 4($sp)
+lw	$s2, 0($sp)
+addi	$sp, $sp, 16
 jr 	$ra
 
-	#----------------------------strcpy----------------------
-strcpy: #reference: https://www.cs.utah.edu/~rajeev/cs3810/slides/3810-05.pdf
-addi 	$sp, $sp, -4		
+	#-----------------------void strcpy(char *&des, char *src)-------------------
+#reference: https://www.cs.utah.edu/~rajeev/cs3810/slides/3810-05.pdf
+strcpy: 				# void strcpy(char *&des, char *src){
+addi 	$sp, $sp, -4			
 sw 	$s0, 0($sp)		
-add 	$s0, $zero, $zero	# i = 0
+add 	$s0, $zero, $zero		# int i = 0;
 
 strcpy_loop: 			
-add 	$t1, $s0, $a1		# while(x[i] = y[i] != '\0')
-lb 	$t2, 0($t1)		#  	i+= 1;
+add 	$t1, $s0, $a1			# while(des[i] = src[i] != '\0')
+lb 	$t2, 0($t1)			#  	i += 1;}
 add 	$t3, $s0, $a0		
 sb 	$t2, 0($t3)
 beq 	$t2, $zero, strcpy_end
@@ -1142,33 +1141,33 @@ addi 	$sp, $sp, 4
 jr 	$ra
 
 
-	#----------------------------String concatenation------------------------
+	#--------------------------void strcat(char *&des, char *src)------------------------
 # $a0 -- 1st string
 # $a1 -- 2nd string
-strcat:
-addi 	$sp, $sp, -8
+strcat:					# void strcat(char *&des, char *src){
+addi 	$sp, $sp, -8		
 sw 	$s0, 0($sp)
 sw	$s1, 4($sp)
 
-add	$s0, $zero, $zero		# Index of string s0 -- i = 0
-add 	$s1, $zero, $zero 		# Index of string s1 -- j = 0
+add	$s0, $zero, $zero		# int i = 0;
+add 	$s1, $zero, $zero 		# int j = 0;
 
-strcatFirstStr:
-add 	$t0, $a0, $s0			# while(x[i] != '\0')
+findEndFirstStr:				
+add 	$t0, $a0, $s0			# while(des[i] != '\0')
 lb 	$t1, 0($t0) 			# 	i += 1;
-beq 	$t1, $zero, strcatSecStr	# 
+beq 	$t1, $zero, appendSecStr	# 
 addi 	$s0, $s0, 1  			# 
-j strcatFirstStr
+j findEndFirstStr
 
-strcatSecStr:
+appendSecStr:
 add 	$t2, $a1, $s1 			# 
-lb 	$t3, 0($t2) 			# while(x[i] = y[j] != '\0'){
+lb 	$t3, 0($t2) 			# while(des[i] = src[j] != '\0'){
 add 	$t0, $a0, $s0 			# 	i += 1;
 sb 	$t3, 0($t0) 			# 	j += 1;
 beq 	$t3, $zero, strcatEnd		# }
-addi 	$s0, $s0, 1			# 
+addi 	$s0, $s0, 1			# }
 addi 	$s1, $s1, 1			# 
-j strcatSecStr
+j appendSecStr
 strcatEnd:
 lw 	$s0, 0($sp)
 lw 	$s1, 4($sp)
@@ -1176,5 +1175,6 @@ addi 	$sp, $sp, 8
 jr 	$ra
 #---------------------------------------------
 exit:
+
 
 
