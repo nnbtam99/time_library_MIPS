@@ -828,7 +828,7 @@ addi	$sp, $sp, 24
 jr  	$ra            	                #   }
 
 
-	#-------------------------char* Convert(char* TIME, char type)--------------------------#
+		#-------------------------char* Convert(char* TIME, char type)--------------------------#
 
 convertTIME:				# char* Convert(char* TIME, char type){
 beq	    $a1, 'A', convertTypeA	# if (type == 'A') goto convertTypeA // MM/DD/YYYY
@@ -874,15 +874,10 @@ sw	$s0, 24($sp)
 sw	$s1, 20($sp)
 sw	$s2, 16($sp)
 sw	$a0, 12($sp)
-					# //a0 = &time. Default format: DD/MM/YYYY
-lb	$t0, 3($a0)			# char t0 = time[3]; char t1 = time[4];
-lb	$t1, 4($a0)	
+					# //a0 = &time. Default format: DD/MM/YYYY)	
 
-add 	$a0, $zero, $t0			
-add	$a1, $zero, $t1
-
-jal	monthCharToNum			
-add	$a0, $zero, $v0			# int num = monthCharToNum(t0, t1); 
+jal	month		
+add	$a0, $zero, $v0			# int num = month(time); 
 
 jal	convertMonth			# char* month = convertMonth(num);
 sw	$v0, 0($sp)			# //save month (string) to stack
@@ -950,14 +945,9 @@ sw	$s2, 16($sp)
 sw	$a0, 12($sp)
 
 #	Get MM				# //a0 = &time. Default format: DD/MM/YYYY
-lb	$t0, 3($a0)			# char t0 = time[3]; char t1 = time[4];
-lb	$t1, 4($a0)	
 
-add 	$a0, $zero, $t0
-add	$a1, $zero, $t1
-
-jal	monthCharToNum
-add	$a0, $zero, $v0			# int num = monthCharToNum(t0, t1); 
+jal	month
+add	$a0, $zero, $v0			# int num = month(time);
 
 jal	convertMonth			# char* month = convertMonth(num);
 sw	$v0, 0($sp)			# save month (string) to stack
@@ -1100,32 +1090,6 @@ Month_11:
 end:
 	jr $ra
 
-
-	#---------------------int monthCharToNum(char c1, char c2)----------------
-# $a0 -- 1st char
-# $a1 -- 2nd char
-monthCharToNum:				# int monthCharToNum(char c1, char c2){	
-addi	$sp, $sp, -16			
-sw	$ra, 12($sp)			
-sw	$s0, 8($sp)
-sw	$s1, 4($sp)
-sw	$s2, 0($sp)
-
-addi	$v0, $zero, 0  			# int sum = 0;
-addi	$t7, $zero, 10 			
-
-addi	$a0, $a0, -48			# c1 -= '0';
-addi	$a1, $a1, -48			# c2 -= '0';
-mul 	$a0, $a0, $t0			# c1 *= 10;
-add	$v0, $a0, $a1			# sum = c1 + c2;
-
-lw	$ra, 12($sp)			# return sum;}
-lw	$s0, 8($sp)
-lw	$s1, 4($sp)
-lw	$s2, 0($sp)
-addi	$sp, $sp, 16
-jr 	$ra
-
 	#-----------------------void strcpy(char *&des, char *src)-------------------
 #reference: https://www.cs.utah.edu/~rajeev/cs3810/slides/3810-05.pdf
 strcpy: 				# void strcpy(char *&des, char *src){
@@ -1183,6 +1147,5 @@ addi 	$sp, $sp, 8
 jr 	$ra
 #---------------------------------------------
 exit:
-
 
 
