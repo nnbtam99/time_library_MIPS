@@ -10,6 +10,7 @@ noti_errortype:	 .asciiz	"\nSai kieu dinh dang. Khoi phuc dinh dang  mac dinh:  
 noti_convert:	 .asciiz	"\nDinh dang thanh cong. Chuoi moi la: "
 
 menu_opt:       .asciiz         "--------- Ban hay chon 1 trong cac thao tac duoi day ----------\n1. Xuat chuoi TIME theo dinh dang DD/MM/YY\n2. Chuyen doi chuoi TIME thanh mot trong cac dinh dang sau:\n\tA. MM/DD/YYYY\n\tB. Month DD, YYYY\n\tC. DD Month, YYYY\n3. Cho biet ngay vua nhap la ngay thu may trong tuan\n4. Kiem tra nam trong chuoi TIME co phai la nam nhuan hay khong\n5. Cho biet khoang thoi gian giua chuoi TIME_1 va TIME_2\n6. Cho biet 2 nam nhuan gan nhat voi nam trong chuoi TIME.\n7. Thoat chuong trinh.\n----------------------------------------------------------------"
+re_opt:		.asciiz		" Lua chon khong phu hop. Vui long nhap lai"
 menu_inp:       .asciiz         "\nLua chon: "
 menu_outp:      .asciiz         "Ket qua: "
 
@@ -137,6 +138,11 @@ main:
     beq	    $s0, 5, printGetTime 	#   	if (cmd == 5) goto printGetTime;
     beq     $s0, 6, print2LYears        #       if (cmd == 6) goto print2LYears;
     beq     $s0, 7, exit
+    
+    la      $a0, re_opt
+    add     $v0, $zero, 4
+    syscall                             #       cout << re_opt;
+    j  processCmd
 
     # ------------------------ Opt 1. Print time DD/MM/YY ----------------------
     printTime:                          #       printTime:
