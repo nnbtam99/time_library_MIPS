@@ -350,12 +350,18 @@ slt     $t1, $a0, $t0
 bne     $t1, $zero, invalidDate         #   if (day < 1) return false;
 slt     $t1, $a1, $t0
 bne     $t1, $zero, invalidDate         #   if (month < 1) return false;
+
+addi	$t0, $zero, 1900
 slt     $t1, $a2, $t0
-bne     $t1, $zero, invalidDate         #   if (year < 1) return false;
+bne     $t1, $zero, invalidDate         #   if (year < 1900) return false;
 
 addi    $t0, $zero, 12
 slt     $t1, $t0, $a1
 bne     $t1, $zero, invalidDate         #   if (month > 12) return false;
+
+addi	$t0, $zero, 9999
+slt	$t1, $t0, $a2
+bne	$t1, $zero, invalidDate		#   if (year > 9999) return false;
 
 sw      $a0, 0($sp)
 add     $a0, $zero, $a1
