@@ -5,28 +5,29 @@ ask_month:      .asciiz         "Nhap thang MONTH: "
 ask_year:       .asciiz         "Nhap nam YEAR: "
 ask_reinput:    .asciiz         "Ngay thang nam khong hop le. Vui long nhap lai.\n"
 ask_date2:	.asciiz		"Nhap ngay thang nam can tinh khoang cach voi ngay hien tai. \n"
-ask_type:	 .asciiz	"\nChon dinh dang muon thay doi: A hay B hay C? "
-noti_errortype:	 .asciiz	"\nSai kieu dinh dang. Khoi phuc dinh dang  mac dinh:  "
-noti_convert:	 .asciiz	"\nDinh dang thanh cong. Chuoi moi la: "
+ask_type:	.asciiz		"\nChon dinh dang muon thay doi: A hay B hay C? "
+noti_errortype:	.asciiz		"\nSai kieu dinh dang. Khoi phuc dinh dang mac dinh:  "
+noti_convert:	.asciiz		"\nDinh dang thanh cong. Chuoi moi la: "
+noti_exit:	.asciiz		"Chuong trinh se duoc thoat trong giay lat.\n"
 
 menu_opt:       .asciiz         "--------- Ban hay chon 1 trong cac thao tac duoi day ----------\n1. Xuat chuoi TIME theo dinh dang DD/MM/YY\n2. Chuyen doi chuoi TIME thanh mot trong cac dinh dang sau:\n\tA. MM/DD/YYYY\n\tB. Month DD, YYYY\n\tC. DD Month, YYYY\n3. Cho biet ngay vua nhap la ngay thu may trong tuan\n4. Kiem tra nam trong chuoi TIME co phai la nam nhuan hay khong\n5. Cho biet khoang thoi gian giua chuoi TIME_1 va TIME_2\n6. Cho biet 2 nam nhuan gan nhat voi nam trong chuoi TIME.\n7. Thoat chuong trinh.\n----------------------------------------------------------------"
 re_opt:		.asciiz		" Lua chon khong phu hop. Vui long nhap lai"
-menu_inp:       .asciiz         "\nLua chon: "
-menu_outp:      .asciiz         "Ket qua: "
+menu_inp:       .asciiz         "\n- Lua chon: "
+menu_outp:      .asciiz         "- Ket qua: "
 
 true_lyear:     .asciiz         "Nam vua nhap la nam nhuan."
 false_lyear:    .asciiz         "Nam vua nhap khong phai la nam nhuan."
 
-mon:		.asciiz		"Thu 2."
-tue:		.asciiz		"Thu 3."
-wed:		.asciiz		"Thu 4."
-thu:		.asciiz		"Thu 5."
-fri:		.asciiz		"Thu 6."
-sat:		.asciiz		"Thu 7."
-sun:		.asciiz		"Chu Nhat."
+mon:		.asciiz		"Thu 2"
+tue:		.asciiz		"Thu 3"
+wed:		.asciiz		"Thu 4"
+thu:		.asciiz		"Thu 5"
+fri:		.asciiz		"Thu 6"
+sat:		.asciiz		"Thu 7"
+sun:		.asciiz		"Chu Nhat"
 
 buffer:         .space          256
-buffer_2:	 .space		  256
+buffer_2:	 .space		256
 
 timeFormatted:	 .space          25
 time:            .space          11
@@ -1153,5 +1154,8 @@ addi 	$sp, $sp, 8
 jr 	$ra
 #---------------------------------------------
 exit:
+la	$a0, noti_exit
+addi	$v0, $zero, 4
+syscall
 
 
